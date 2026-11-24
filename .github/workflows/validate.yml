@@ -1,0 +1,41 @@
+name: Validate
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  hardware-free:
+    runs-on: ubuntu-latest
+    env:
+      ANSIBLE_ROLES_PATH: ./roles
+      ANSIBLE_HOST_KEY_CHECKING: "True"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install controller tooling
+        run: |
+          python -m pip install -r requirements-dev.txt
+          ansible-galaxy collection install -r requirements.yml
+      - name: Parse Python and YAML without executing applications
+        run: python scripts/validate.py
+      - name: Run hardware-free unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Check batch script syntax
+        run: bash -n playbooks/run_scale_up_timing_batch.sh
+      - name: Check Ansible syntax without contacting hosts
+        run: |
+          ansible-playbook -i inventory-sample.yml site.yml --syntax-check
+          ansible-playbook -i inventory-sample.yml monitoring.yml --syntax-check
+          ansible-playbook -i inventory-sample.yml reset.yml --syntax-check
+          ansible-playbook -i inventory-sample.yml long_term_simulation.yml --syntax-check
+          ansible-playbook -i inventory-sample.yml event_driven_simulation.yml --syntax-check
+          ansible-playbook -i inventory-sample.yml nepal_scenario_simulation.yml --syntax-check

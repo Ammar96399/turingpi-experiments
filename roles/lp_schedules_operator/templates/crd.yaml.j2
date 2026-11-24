@@ -1,0 +1,62 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: lpschedules.graceful-degradation.io
+spec:
+  group: graceful-degradation.io
+  versions:
+    - name: v0
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          x-kubernetes-preserve-unknown-fields: true
+          properties:
+            spec:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+              properties:
+                e_sol_wh:
+                  type: number
+                soc_init_wh:
+                  type: number
+                gamma:
+                  type: number
+                objective_type:
+                  type: string
+                applications:
+                  type: object
+                  additionalProperties:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                    properties:
+                      index:
+                        type: integer
+                      weight:
+                        type: number
+                      critical:
+                        type: integer
+                      levels:
+                        type: array
+                        items:
+                          type: object
+                          x-kubernetes-preserve-unknown-fields: true
+                          properties:
+                            level:
+                              type: integer
+                            cost:
+                              type: number
+                            dep:
+                              type: array
+                              items:
+                                type: object
+                                x-kubernetes-preserve-unknown-fields: true
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+  scope: Namespaced
+  names:
+    plural: lpschedules
+    singular: lpschedule
+    kind: LPSchedule

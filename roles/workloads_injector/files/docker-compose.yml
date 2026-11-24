@@ -1,0 +1,23 @@
+
+services:
+  rabbitmq:
+    build:
+      context: .
+      dockerfile: Dockerfile  # Uses the Dockerfile in the current directory
+    image: my-rabbitmq:3.12  # Name and tag for the built image
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"    # AMQP port
+      - "1883:1883"    # MQTT port (if enabled)
+      - "15672:15672"  # Management UI port
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq  # Persist data across restarts
+    # Uncomment the command below to enable MQTT plugin at startup
+    # command: "sh -c 'rabbitmq-plugins enable rabbitmq_mqtt && rabbitmq-server'"
+    restart: unless-stopped  # Restart unless explicitly stopped
+
+volumes:
+  rabbitmq-data:  # Named volume for persistence

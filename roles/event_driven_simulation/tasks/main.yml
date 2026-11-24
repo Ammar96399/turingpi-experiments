@@ -1,0 +1,95 @@
+---
+- name: Delete event-driven-simulation namespace if it exists
+  ansible.builtin.shell: |
+    k0s kubectl delete namespace event-driven-simulation --ignore-not-found
+  ignore_errors: true
+
+- name: Ensure event-driven-simulation namespace exists
+  ansible.builtin.shell: |
+    k0s kubectl create namespace event-driven-simulation --dry-run=client -o yaml | k0s kubectl apply -f -
+  ignore_errors: true
+
+- name: Create ServiceAccount for node label access
+  ansible.builtin.shell: |
+    k0s kubectl apply -f - <<EOF
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: node-reader
+      namespace: event-driven-simulation
+    EOF
+  register: sa_result
+  failed_when: sa_result.rc != 0
+
+- name: Create ClusterRole for reading node information
+  ansible.builtin.shell: |
+    k0s kubectl apply -f - <<EOF
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      name: node-reader
+    rules:
+    - apiGroups: [""]
+      resources: ["nodes"]
+      verbs: ["get"]
+    EOF
+  register: cr_result
+  failed_when: cr_result.rc != 0
+
+- name: Create ClusterRoleBinding for node-reader
+  ansible.builtin.shell: |
+    k0s kubectl apply -f - <<EOF
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      name: node-reader-binding
+    subjects:
+    - kind: ServiceAccount
+      name: node-reader
+      namespace: event-driven-simulation
+    roleRef:
+      kind: ClusterRole
+      name: node-reader
+      apiGroup: rbac.authorization.k8s.io
+    EOF
+  register: crb_result
+  failed_when: crb_result.rc != 0
+
+- name: Run Jobs for multiple workload numbers in event-driven-simulation namespace
+  ansible.builtin.shell: |
+    k0s kubectl apply -f - <<EOF
+    apiVersion: batch/v1
+    kind: Job
+    metadata:
+      name: event-driven-load-injector-{{ workload_number }}
+      namespace: event-driven-simulation
+    spec:
+      ttlSecondsAfterFinished: 10
+      backoffLimit: 6
+      template:
+        spec:
+          serviceAccountName: node-reader
+          containers:
+            - name: event-driven-load-injector
+              image: event-driven-load-injector:local
+              args:
+                - "{{ workload_number }}"
+                - "{{ one_minute }}"
+              imagePullPolicy: Never
+              env:
+                - name: NODE_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: spec.nodeName
+              resources:
+                requests:
+                  cpu: "0"
+                limits:
+                  cpu: "1"
+          restartPolicy: OnFailure
+    EOF
+  loop: "{{ range(1, 81) | list }}"
+  loop_control:
+    loop_var: workload_number
+  register: job_result
+  failed_when: job_result.rc != 0

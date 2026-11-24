@@ -1,0 +1,8 @@
+---
+
+- name: Reset cluster configuration
+  hosts: turing_pi_cluster
+  gather_facts: true
+  become: true
+  roles:
+    - role: reset

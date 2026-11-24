@@ -1,0 +1,5 @@
+- name: Reset time_proxy clock
+  ansible.builtin.uri:
+    url: "{{ time_proxy_url }}/reset"
+    method: POST
+    status_code: 200

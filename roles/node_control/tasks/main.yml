@@ -1,0 +1,127 @@
+---
+- name: Copy the node_control script
+  ansible.builtin.copy:
+    src: node_control.py
+    dest: "/home/{{ ansible_user }}/simulation"
+    mode: "0755"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    force: true
+
+- name: Copy the scale_up_timing_probe script
+  ansible.builtin.copy:
+    src: scale_up_timing_probe.py
+    dest: "/home/{{ ansible_user }}/simulation"
+    mode: "0755"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    force: true
+
+- name: Remove logs file
+  ansible.builtin.file:
+    path: "/home/{{ ansible_user }}/simulation/node_control_log.log"
+    state: absent
+  ignore_errors: true
+
+- name: Remove logs file
+  ansible.builtin.file:
+    path: "/home/{{ ansible_user }}/simulation/node_control_pid.txt"
+    state: absent
+  ignore_errors: true
+
+- name: Remove timing probe logs file
+  ansible.builtin.file:
+    path: "/home/{{ ansible_user }}/simulation/scale_up_timing_probe.log"
+    state: absent
+  ignore_errors: true
+
+- name: Stop previous timing probe process if running
+  ansible.builtin.shell: |
+    if [ -f /home/{{ ansible_user }}/simulation/scale_up_timing_probe_pid.txt ]; then
+      kill $(cat /home/{{ ansible_user }}/simulation/scale_up_timing_probe_pid.txt) || true
+      rm -f /home/{{ ansible_user }}/simulation/scale_up_timing_probe_pid.txt
+    fi
+  changed_when: false
+
+- name: Run the node_control script in background
+  ansible.builtin.shell: |
+    nohup python3 /home/{{ ansible_user }}/simulation/node_control.py {{ one_minute }} {{ window_size }} {{ min_threshold }} {{ max_threshold }} > /home/{{ ansible_user }}/simulation/node_control_log.log 2>&1 & echo $! > /home/{{ ansible_user }}/simulation/node_control_pid.txt
+  args:
+    chdir: "/home/{{ ansible_user }}/simulation/"
+  changed_when: false
+
+- name: Run the scale_up_timing_probe script in background
+  ansible.builtin.shell: |
+    nohup python3 /home/{{ ansible_user }}/simulation/scale_up_timing_probe.py --target-ip 131.254.100.24 --namespace simulation > /home/{{ ansible_user }}/simulation/scale_up_timing_probe.log 2>&1 & echo $! > /home/{{ ansible_user }}/simulation/scale_up_timing_probe_pid.txt
+  args:
+    chdir: "/home/{{ ansible_user }}/simulation/"
+  changed_when: false
+
+- name: Delete existing Descheduler job if present
+  ansible.builtin.command: >
+    k0s kubectl delete job -n {{ descheduler_namespace }} -l "app.kubernetes.io/name={{ descheduler_release_name }}"
+  ignore_errors: true
+  changed_when: false
+  become: true
+
+- name: Copy Descheduler custom values file
+  ansible.builtin.template:
+    src: "descheduler-values.yaml.j2"
+    dest: "/tmp/descheduler-values.yaml"
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+
+- name: Uninstall Descheduler
+  ansible.builtin.command: >
+    {{ helm_binary_path }}
+    --kubeconfig {{ k3s_kubeconfig }}
+    uninstall {{ descheduler_release_name }}
+    --namespace {{ descheduler_namespace }}
+  ignore_errors: true
+  changed_when: false
+
+- name: Remove Helm repository for Descheduler
+  ansible.builtin.command: >
+    {{ helm_binary_path }}
+    --kubeconfig {{ k3s_kubeconfig }}
+    repo remove {{ descheduler_release_name }}
+  ignore_errors: true
+  changed_when: false
+  become: true
+
+- name: Add Helm repository for Descheduler
+  ansible.builtin.command: >
+    {{ helm_binary_path }}
+    --kubeconfig {{ k3s_kubeconfig }}
+    repo add {{ descheduler_release_name }} {{ descheduler_chart_repo }}
+  register: repo_add
+  changed_when: repo_add.rc == 0
+  failed_when: repo_add.rc != 0 and "already exists" not in repo_add.stderr
+
+- name: Update Helm repositories
+  ansible.builtin.command: "{{ helm_binary_path }} repo update"
+  changed_when: false
+
+- name: Deploy Descheduler via Helm
+  ansible.builtin.command: >
+    {{ helm_binary_path }} upgrade --install {{ descheduler_release_name }}
+    {{ descheduler_chart_name }}
+    --namespace {{ descheduler_namespace }}
+    --kubeconfig {{ k3s_kubeconfig }}
+    --set image.repository={{ descheduler_image_repository }}
+    --set image.tag={{ descheduler_image_tag }}
+    -f /tmp/descheduler-values.yaml
+  register: helm_install_descheduler
+
+- name: Patch Descheduler clusterrole
+  ansible.builtin.command: >
+    k0s kubectl patch clusterrole {{ descheduler_release_name }}
+    -n {{ descheduler_namespace }} --type='json'
+    -p='[
+      {"op": "add", "path": "/rules/-", "value": {"apiGroups": ["metrics.k8s.io"], "resources": ["nodes", "pods"], "verbs": ["get", "list"]}},
+      {"op": "add", "path": "/rules/-", "value": {"apiGroups": [""], "resources": ["persistentvolumeclaims"], "verbs": ["get", "list", "watch"]}}
+    ]'
+  register: patch_descheduler
+  become: true

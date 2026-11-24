@@ -1,0 +1,36 @@
+---
+- name: Require a nonempty influxdb_token inventory variable to start time_proxy
+  ansible.builtin.assert:
+    that:
+      - influxdb_token is defined
+      - influxdb_token is string
+      - influxdb_token | trim | length > 0
+    fail_msg: "Set influxdb_token to a nonempty InfluxDB API token in protected inventory (for example, Ansible Vault)."
+  no_log: true
+  when: not reset_time_proxy | default(true)
+
+- name: Run time_proxy on localhost in background
+  ansible.builtin.shell: bash -c 'python3 {{ role_path }}/files/time_proxy.py --sim-ratio {{ 60.0 / one_minute }} --experiment-id {{ experiment_id }} > {{ results_dir }}/time_proxy.log 2>&1 & echo $! > {{ results_dir }}/time_proxy.pid'
+  args:
+    chdir: "{{ role_path }}"
+  environment:
+    INFLUXDB_TOKEN: "{{ influxdb_token }}"
+    INFLUXDB_URL: "{{ influxdb_url | default('http://localhost:8086') }}"
+    INFLUXDB_ORG: "{{ influxdb_org | default('IRISA') }}"
+    INFLUXDB_BUCKET: "{{ influxdb_bucket | default('test') }}"
+    # Set an explicit override only on a firewall-restricted lab network.
+    TIME_PROXY_HOST: "{{ time_proxy_host | default('127.0.0.1') }}"
+  no_log: true
+  register: script_result
+  when: not reset_time_proxy | default(true)
+
+- name: Wait for time_proxy to be ready
+  ansible.builtin.wait_for:
+    host: "{{ time_proxy_connect_host }}"
+    port: 5000
+    delay: 1
+    timeout: 30
+  when: not reset_time_proxy | default(true)
+
+- name: Reset time_proxy
+  ansible.builtin.include_tasks: reset.yml

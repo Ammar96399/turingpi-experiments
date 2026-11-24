@@ -1,0 +1,69 @@
+rk1 1
+2026-03-17 08:25:56,338 - INFO - scale_up_timing_probe listening on 0.0.0.0:5010 (target_ip=131.254.100.24, namespace=simulation)
+2026-03-17 08:27:46,338 - INFO - http: "POST /scale-up-request HTTP/1.1" 202 -
+2026-03-17 08:28:26,900 - INFO - run 1: node 131.254.100.24 joined as rk1-1
+2026-03-17 08:28:57,134 - INFO - http: "POST /scale-up-request HTTP/1.1" 409 -
+2026-03-17 08:29:13,127 - INFO - run 1: first new pod on rk1-1 is dummy-job-1-d5hgp
+
+rk1 2
+2026-03-17 08:43:06,309 - INFO - scale_up_timing_probe listening on 0.0.0.0:5010 (target_ip=131.254.100.24, namespace=simulation)
+2026-03-17 08:44:56,356 - INFO - http: "POST /scale-up-request HTTP/1.1" 202 -
+2026-03-17 08:45:36,573 - INFO - run 1: node 131.254.100.24 joined as rk1-1
+2026-03-17 08:46:06,927 - INFO - http: "POST /scale-up-request HTTP/1.1" 409 -
+2026-03-17 08:46:20,446 - INFO - run 1: first new pod on rk1-1 is dummy-job-1-76qf2
+
+rk1 3
+2026-03-17 09:12:18,954 - INFO - scale_up_timing_probe listening on 0.0.0.0:5010 (target_ip=131.254.100.24, namespace=simulation)
+2026-03-17 09:14:09,109 - INFO - http: "POST /scale-up-request HTTP/1.1" 202 -
+2026-03-17 09:14:49,854 - INFO - run 1: node 131.254.100.24 joined as rk1-1
+2026-03-17 09:15:20,238 - INFO - http: "POST /scale-up-request HTTP/1.1" 409 -
+2026-03-17 09:15:34,180 - INFO - run 1: first new pod on rk1-1 is dummy-job-1-56p2l
+
+rk1 4
+2026-03-17 09:26:31,730 - INFO - scale_up_timing_probe listening on 0.0.0.0:5010 (target_ip=131.254.100.24, namespace=simulation)
+2026-03-17 09:28:21,844 - INFO - http: "POST /scale-up-request HTTP/1.1" 202 -
+2026-03-17 09:28:58,194 - INFO - run 1: node 131.254.100.24 joined as rk1-1
+2026-03-17 09:29:28,735 - INFO - http: "POST /scale-up-request HTTP/1.1" 409 -
+2026-03-17 09:29:41,115 - INFO - run 1: first new pod on rk1-1 is dummy-job-2-jrpqt
+
+rk1 5
+2026-03-17 09:45:56,952 - INFO - scale_up_timing_probe listening on 0.0.0.0:5010 (target_ip=131.254.100.24, namespace=simulation)
+2026-03-17 09:47:47,043 - INFO - http: "POST /scale-up-request HTTP/1.1" 202 -
+2026-03-17 09:48:27,812 - INFO - run 1: node 131.254.100.24 joined as rk1-1
+2026-03-17 09:48:58,385 - INFO - http: "POST /scale-up-request HTTP/1.1" 409 -
+2026-03-17 09:49:13,410 - INFO - run 1: first new pod on rk1-1 is dummy-job-1-zzhm7
+
+rk1 6
+2026-03-17 09:53:55,128 - INFO - scale_up_timing_probe listening on 0.0.0.0:5010 (target_ip=131.254.100.24, namespace=simulation)
+2026-03-17 09:55:45,382 - INFO - http: "POST /scale-up-request HTTP/1.1" 202 -
+2026-03-17 09:56:21,770 - INFO - run 1: node 131.254.100.24 joined as rk1-1
+2026-03-17 09:56:52,083 - INFO - http: "POST /scale-up-request HTTP/1.1" 409 -
+2026-03-17 09:57:05,359 - INFO - run 1: first new pod on rk1-1 is dummy-job-1-sjp6d
+
+rk1 7
+2026-03-17 10:01:37,893 - INFO - scale_up_timing_probe listening on 0.0.0.0:5010 (target_ip=131.254.100.24, namespace=simulation)
+2026-03-17 10:03:27,981 - INFO - http: "POST /scale-up-request HTTP/1.1" 202 -
+2026-03-17 10:04:04,341 - INFO - run 1: node 131.254.100.24 joined as rk1-1
+2026-03-17 10:04:34,895 - INFO - http: "POST /scale-up-request HTTP/1.1" 409 -
+2026-03-17 10:04:49,223 - INFO - run 1: first new pod on rk1-1 is dummy-job-1-2mkvq
+
+rk1 8
+2026-03-17 10:12:37,871 - INFO - scale_up_timing_probe listening on 0.0.0.0:5010 (target_ip=131.254.100.24, namespace=simulation)
+2026-03-17 10:14:27,957 - INFO - http: "POST /scale-up-request HTTP/1.1" 202 -
+2026-03-17 10:15:08,242 - INFO - run 1: node 131.254.100.24 joined as rk1-1
+2026-03-17 10:15:38,317 - INFO - http: "POST /scale-up-request HTTP/1.1" 409 -
+2026-03-17 10:15:52,322 - INFO - run 1: first new pod on rk1-1 is dummy-job-1-fzfsl
+
+rk1 9
+2026-03-17 10:36:02,922 - INFO - scale_up_timing_probe listening on 0.0.0.0:5010 (target_ip=131.254.100.24, namespace=simulation)
+2026-03-17 10:37:53,012 - INFO - http: "POST /scale-up-request HTTP/1.1" 202 -
+2026-03-17 10:38:29,524 - INFO - run 1: node 131.254.100.24 joined as rk1-1
+2026-03-17 10:39:00,052 - INFO - http: "POST /scale-up-request HTTP/1.1" 409 -
+2026-03-17 10:39:14,382 - INFO - run 1: first new pod on rk1-1 is dummy-job-1-n2n9v
+
+rk1 10
+2026-03-17 10:45:07,685 - INFO - scale_up_timing_probe listening on 0.0.0.0:5010 (target_ip=131.254.100.24, namespace=simulation)
+2026-03-17 10:46:57,818 - INFO - http: "POST /scale-up-request HTTP/1.1" 202 -
+2026-03-17 10:47:34,836 - INFO - run 1: node 131.254.100.24 joined as rk1-1
+2026-03-17 10:48:05,402 - INFO - http: "POST /scale-up-request HTTP/1.1" 409 -
+2026-03-17 10:48:19,275 - INFO - run 1: first new pod on rk1-1 is dummy-job-1-79j4j

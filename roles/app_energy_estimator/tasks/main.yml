@@ -1,0 +1,187 @@
+---
+- name: Check if Docker is installed
+  ansible.builtin.stat:
+    path: /usr/bin/docker
+  register: docker_installed
+
+- name: Download Docker installation script
+  ansible.builtin.get_url:
+    url: https://test.docker.com
+    dest: /tmp/get-docker.sh
+    mode: "0755"
+  when: not docker_installed.stat.exists
+
+- name: Execute Docker installation script
+  ansible.builtin.command:
+    cmd: sh /tmp/get-docker.sh
+  args:
+    creates: /usr/bin/docker
+  when: not docker_installed.stat.exists
+  register: docker_install_result
+  changed_when: docker_install_result.rc == 0
+
+- name: Ensure Docker service is running
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Add user to docker group
+  ansible.builtin.user:
+    name: "{{ ansible_user }}"
+    groups: docker
+    append: true
+
+- name: Create the app_energy_estimator build directory
+  ansible.builtin.file:
+    path: /home/{{ ansible_user }}/app_energy_estimator
+    state: directory
+    mode: "0755"
+    owner: "{{ ansible_user }}"
+
+- name: Delete the app_energy_estimator build directory if exists
+  ansible.builtin.file:
+    path: /home/{{ ansible_user }}/app_energy_estimator
+    state: absent
+
+- name: Recreate the app_energy_estimator build directory
+  ansible.builtin.file:
+    path: /home/{{ ansible_user }}/app_energy_estimator
+    state: directory
+    mode: "0755"
+    owner: "{{ ansible_user }}"
+
+- name: Copy the app_energy_estimator script
+  ansible.builtin.copy:
+    src: app_energy_estimator.py
+    dest: "/home/{{ ansible_user }}/app_energy_estimator"
+    mode: "0755"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    force: true
+
+- name: Copy the power usage csv
+  ansible.builtin.copy:
+    src: power_usage.csv
+    dest: "/home/{{ ansible_user }}/app_energy_estimator"
+    mode: "0644"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    force: true
+
+- name: Copy the Dockerfile
+  ansible.builtin.copy:
+    src: Dockerfile
+    dest: "/home/{{ ansible_user }}/app_energy_estimator"
+    mode: "0755"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    force: true
+
+- name: Remove docker image
+  ansible.builtin.command: sudo docker image rm app-energy-estimator:local
+  ignore_errors: true
+
+- name: Build the docker image
+  community.docker.docker_image:
+    build:
+      path: /home/{{ ansible_user }}/app_energy_estimator
+      nocache: true
+    name: app-energy-estimator
+    source: build
+    tag: local
+
+- name: Check if the docker image tar file exists
+  ansible.builtin.stat:
+    path: /home/{{ ansible_user }}/app_energy_estimator/app-energy-estimator.tar
+  register: docker_image_tar
+
+- name: Delete the docker image tar file
+  ansible.builtin.file:
+    path: /home/{{ ansible_user }}/app_energy_estimator/app-energy-estimator.tar
+    state: absent
+  when: docker_image_tar.stat.exists
+
+- name: Save the docker image to a tar file
+  ansible.builtin.shell: |
+    docker save app-energy-estimator:local > /home/{{ ansible_user }}/app_energy_estimator/app-energy-estimator.tar
+
+- name: Remove the docker image from the master node
+  ansible.builtin.command: sudo k0s ctr images rm docker.io/library/app-energy-estimator:local
+  ignore_errors: true
+
+- name: Import the docker image to the master node
+  ansible.builtin.command: sudo k0s ctr images import /home/{{ ansible_user }}/app_energy_estimator/app-energy-estimator.tar
+
+- name: Ensure lp-schedules-operator namespace exists
+  ansible.builtin.command: >
+    k0s kubectl --kubeconfig {{ k3s_kubeconfig }}
+    create namespace lp-schedules-operator
+  ignore_errors: true
+  changed_when: false
+
+- name: Delete app-energy-estimator deployment if it exists
+  ansible.builtin.command: >
+    k0s kubectl --kubeconfig {{ k3s_kubeconfig }}
+    delete deployment app-energy-estimator
+    -n lp-schedules-operator
+  ignore_errors: true
+  changed_when: false
+
+- name: Deploy app-energy-estimator to Kubernetes
+  ansible.builtin.shell: |
+    k0s kubectl --kubeconfig {{ k3s_kubeconfig }} apply -f - <<EOF
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: app-energy-estimator
+      namespace: lp-schedules-operator
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: app-energy-estimator
+      template:
+        metadata:
+          labels:
+            app: app-energy-estimator
+        spec:
+          nodeSelector:
+            role: server
+          containers:
+            - name: app-energy-estimator
+              image: docker.io/library/app-energy-estimator:local
+              imagePullPolicy: Never
+              ports:
+                - containerPort: 49094
+              resources:
+                requests:
+                  memory: "64Mi"
+                  cpu: "25m"
+                limits:
+                  memory: "128Mi"
+                  cpu: "250m"
+    ---
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: app-energy-estimator
+      namespace: lp-schedules-operator
+    spec:
+      selector:
+        app: app-energy-estimator
+      ports:
+        - name: http
+          port: 49094
+          targetPort: 49094
+      type: ClusterIP
+    EOF
+
+- name: Wait for get-request deployment to be ready
+  ansible.builtin.command: >
+    k0s kubectl --kubeconfig {{ k3s_kubeconfig }}
+    -n lp-schedules-operator
+    wait --for=condition=available
+    --timeout=300s
+    deployment/get-request
+  changed_when: false

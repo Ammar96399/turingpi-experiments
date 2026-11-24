@@ -1,0 +1,6 @@
+---
+- name: Run QoS monitoring on localhost in background
+  ansible.builtin.shell: bash -c 'python3 {{ role_path }}/files/qos_monitoring.py --kubeconfig {{ kubeconfig | default(role_path ~ "/../.." ~ "/k0s-kubeconfig.yml") }} --interval {{ one_minute }} > {{ results_dir }}/qos_monitoring.log 2>&1 & echo $! > {{ results_dir }}/qos_monitoring.pid'
+  args:
+    chdir: "{{ role_path }}"
+  register: script_result

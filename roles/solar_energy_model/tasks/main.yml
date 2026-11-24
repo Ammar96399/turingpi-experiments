@@ -1,0 +1,14 @@
+---
+
+- name: Ensure influxdb-client is installed in conda base
+  ansible.builtin.pip:
+    name: influxdb-client
+    executable: "/home/{{ local_user }}/miniconda3/bin/pip"
+  become: true
+
+- name: Run hourly solar energy model on localhost in background
+  ansible.builtin.shell: bash -c '/home/{{ local_user }}/miniconda3/bin/python3 {{ role_path }}/files/hourly_energy_from_radiation.py --lat {{ solar_lat }} --lon {{ solar_lon }} --stc-irradiance {{ stc_irradiance }} --system-losses {{ system_losses }} --battery-capacity-wh {{ battery_capacity_wh }} --initial-soc-wh {{ initial_soc_wh }} --max-charge-w {{ max_charge_w }} --charge-efficiency {{ charge_efficiency }} --discharge-efficiency {{ discharge_efficiency }} --tz-offset-hours {{ tz_offset_hours }} --wp {{ wp | default(100.0) }} --experiment-id {{ experiment_id }} --year {{ solar_year }} > {{ results_dir }}/solar_energy_model.log 2>&1 & echo $! > {{ results_dir }}/solar_energy_model.pid'
+  become: true
+  args:
+    chdir: "{{ role_path }}"
+  register: script_result

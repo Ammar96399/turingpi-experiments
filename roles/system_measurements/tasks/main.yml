@@ -1,0 +1,7 @@
+---
+- name: Run collect_power.py in background on the localhost and save its PID
+  ansible.builtin.shell: bash -c 'python3 {{ playbook_dir }}/roles/system_measurements/files/collect_power.py > {{ results_dir }}/collect_power.log 2>&1 & echo $! > {{ results_dir }}/collect_power.pid'
+  become: true
+  args:
+    chdir: "{{ playbook_dir }}"
+  register: script_result

@@ -1,0 +1,105 @@
+---
+# Default values for descheduler.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# CronJob or Deployment
+kind: CronJob
+
+image:
+  repository: ammar1999/descheduler
+  tag: "0.35.0-arm64"
+  pullPolicy: IfNotPresent
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+cronJobApiVersion: "batch/v1"
+schedule: "0 */12 * * *"
+suspend: false
+
+cmdOptions:
+  v: 3
+
+deschedulerPolicyAPIVersion: "descheduler/v1alpha2"
+
+deschedulerPolicy:
+  metricsProviders:
+  - source: "KubernetesMetrics"
+    kubernetesMetrics:
+      url: https://metrics-server.kube-system.svc.cluster.local:443
+  profiles:
+    - name: default
+      pluginConfig:
+        - name: "DefaultEvictor"
+          args:
+            namespaceLabelSelector:
+              matchLabels:
+                kubernetes.io/metadata.name: simulation
+        - name: "LowNodeUtilization"
+          args:
+            metricsUtilization:
+              metricsServer: true
+            thresholds:
+              cpu: 60
+              memory: 60
+              pods: 60
+            targetThresholds:
+              cpu: 70
+              memory: 70
+              pods: 70
+            evictionLimits:
+              node: 30
+            metricsUtilization:
+              source: "KubernetesMetrics"
+      plugins:
+        balance:
+          enabled:
+            - LowNodeUtilization
+
+priorityClassName: system-cluster-critical
+
+nodeSelector: {}
+affinity: {}
+tolerations: []
+
+serviceAccount:
+  create: true
+  annotations: {}
+
+livenessProbe:
+  failureThreshold: 3
+  httpGet:
+    path: /healthz
+    port: 10258
+    scheme: HTTPS
+  initialDelaySeconds: 3
+  periodSeconds: 10
+
+service:
+  enabled: false
+
+serviceMonitor:
+  enabled: false
+  additionalLabels: {}
+  interval: ""
+  insecureSkipVerify: true
+  metricRelabelings: []
+  relabelings: []
+  namespace: ""
+
+rbac:
+  create: true
+  clusterRole:
+    extraRules:
+      - apiGroups: ["metrics.k8s.io"]
+        resources: ["nodes", "pods"]
+        verbs: ["get", "list"]
+      - apiGroups: [""]
+        resources: ["persistentvolumeclaims"]
+        verbs: ["get", "list", "watch"]

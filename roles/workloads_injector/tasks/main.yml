@@ -1,0 +1,19 @@
+---
+
+- name: Log the timestamp before starting the workload injector
+  ansible.builtin.shell: date +%s > {{ results_dir }}/experiment_start_time.txt
+  args:
+    chdir: "{{ playbook_dir }}"
+  register: script_result
+  
+- name: Run workload injector in the background
+  ansible.builtin.shell: python3 {{ playbook_dir }}/roles/workloads_injector/files/workload_injector.py {{ observatory }} {{ one_minute }} > {{ results_dir }}/workload_injector_logs.txt 2>&1 & echo $! > {{ results_dir }}/workload_injector.txt
+  args:
+    chdir: "{{ playbook_dir }}"
+  register: script_result
+
+# - name: Run switching on and off nodes
+#   ansible.builtin.shell: python3 {{ playbook_dir }}/roles/workloads_injector/files/workload_injector.py {{ observatory }} {{ one_minute }} > {{ results_dir }}/workload_injector.txt 2>&1 & echo $! > {{ results_dir }}/workload_injector.txt
+#   args:
+#     chdir: "{{ playbook_dir }}"
+#   register: script_result

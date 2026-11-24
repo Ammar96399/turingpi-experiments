@@ -1,0 +1,61 @@
+---
+- name: Emulation preparation
+  hosts: server
+  gather_facts: true
+  become: true
+  roles: 
+    - role: emulation_preparation
+    
+- name: Setup monitoring Demo
+  hosts: server
+  gather_facts: true
+  become: true
+  roles:
+    - role: monitoring_demo
+
+- name: Prepare long term simulation
+  hosts: turing_pi_cluster
+  gather_facts: true
+  become: true
+  roles:
+    - role: deploy_applications_prereq_demo
+
+- name: Start system measurements
+  hosts: localhost
+  gather_facts: true
+  roles:
+    - role: system_measurements
+
+- name: Prepare injecting workloads
+  hosts: localhost
+  gather_facts: true
+  roles:
+    - role: workloads_injector_prep
+  vars:
+    observatory: "event_driven_observatory"
+
+- name: Run long term simulation
+  hosts: server
+  gather_facts: true
+  become: true
+  roles:
+    - role: deploy_applications
+
+- name: Inject workload
+  hosts: localhost
+  gather_facts: true
+  roles:
+    - role: workloads_injector_demo
+  vars:
+    observatory: "event_driven_observatory"
+
+- name: Start node control
+  hosts: server
+  gather_facts: true
+  become: true
+  roles:    
+    - role: node_control_demo
+  vars:
+    window_size: 10
+    min_threshold: 40
+    max_threshold: 70

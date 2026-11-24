@@ -1,0 +1,6 @@
+---
+- name: Run prometheus_to_time_proxy on localhost in background
+  ansible.builtin.shell: bash -c 'python3 {{ role_path }}/files/prometheus_to_time_proxy.py --one-minute {{ one_minute }} --interval {{ one_minute }} > {{ results_dir }}/prometheus_to_time_proxy.log 2>&1 & echo $! > {{ results_dir }}/prometheus_to_time_proxy.pid'
+  args:
+    chdir: "{{ role_path }}"
+  register: script_result

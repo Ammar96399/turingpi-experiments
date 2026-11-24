@@ -1,0 +1,139 @@
+---
+- name: Delete simulation namespace if it exists
+  ansible.builtin.shell: |
+    k0s kubectl delete namespace simulation --ignore-not-found
+  ignore_errors: true
+
+# - name: Cordon nodes
+#   ansible.builtin.shell: |
+#     k0s kubectl cordon rk1-1
+#     k0s kubectl cordon rpi2
+#   register: uncordon_result
+#   failed_when: uncordon_result.rc != 0
+#   changed_when: uncordon_result.rc == 0
+
+# - name: Turn off nodes
+#   ansible.builtin.shell: |
+#     ssh root@131.254.100.14 tpi power --node 3 off
+#     ssh root@131.254.100.14 tpi power --node 2 off
+#   register: drain_result
+#   failed_when: drain_result.rc != 0
+#   changed_when: drain_result.rc == 0
+
+- name: Ensure simulation namespace exists
+  ansible.builtin.shell: |
+    k0s kubectl create namespace simulation --dry-run=client -o yaml | k0s kubectl apply -f -
+  ignore_errors: true
+
+- name: Create ServiceAccount for node label access
+  ansible.builtin.shell: |
+    k0s kubectl apply -f - <<EOF
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: node-reader
+      namespace: simulation
+    EOF
+  register: sa_result
+  failed_when: sa_result.rc != 0
+
+- name: Create ClusterRole for reading node information
+  ansible.builtin.shell: |
+    k0s kubectl apply -f - <<EOF
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      name: node-reader
+    rules:
+    - apiGroups: [""]
+      resources: ["nodes"]
+      verbs: ["get"]
+    EOF
+  register: cr_result
+  failed_when: cr_result.rc != 0
+
+- name: Create ClusterRoleBinding for node-reader
+  ansible.builtin.shell: |
+    k0s kubectl apply -f - <<EOF
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      name: node-reader-binding
+    subjects:
+    - kind: ServiceAccount
+      name: node-reader
+      namespace: simulation
+    roleRef:
+      kind: ClusterRole
+      name: node-reader
+      apiGroup: rbac.authorization.k8s.io
+    EOF
+  register: crb_result
+  failed_when: crb_result.rc != 0
+
+- name: Find all simulation subfolders
+  delegate_to: localhost
+  tags: simulation_jobs
+  run_once: true
+  ansible.builtin.find:
+    paths: "{{ playbook_dir }}/roles/workloads_injector/files/{{ observatory }}/applications"
+    file_type: directory
+    recurse: no
+  register: found_dirs
+
+- set_fact:
+    simulation_dirs: "{{ found_dirs.files | map(attribute='path') | map('basename') | list }}"
+  tags: simulation_jobs
+
+- name: Run Jobs for multiple workload numbers in simulation namespace
+  tags: simulation_jobs
+  ansible.builtin.shell: |
+    python3 /home/{{ ansible_user }}/simulation/{{ workload }}_simulation/get_request.py {{ item }} > /tmp/request_{{ item }};
+    python3 /home/{{ ansible_user }}/simulation/{{ workload }}_simulation/get_limit.py {{ item }} > /tmp/limit_{{ item }};
+
+    export REQUEST=$(cat /tmp/request_{{ item }});
+    export LIMIT=$(cat /tmp/limit_{{ item }});
+
+    k0s kubectl apply -f - <<EOF
+    apiVersion: batch/v1
+    kind: Job
+    metadata:
+      name: "application-simulator-{{ item | lower | replace('_', '-') }}"
+      namespace: simulation
+    spec:
+      backoffLimit: 20
+      template:
+        metadata:
+          labels:
+            job: "{{ item }}"
+          annotations:
+            prometheus.io/scrape: "true"
+            prometheus.io/port: "8080"
+            prometheus.io/path: "/metrics"
+        spec:
+          serviceAccountName: node-reader
+          containers:
+            - name: application-simulator
+              image: application-simulator:local
+              args:
+                - "{{ item }}"
+                - "{{ one_minute }}"
+              imagePullPolicy: Never
+              env:
+                - name: NODE_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: spec.nodeName
+              resources:
+                requests:
+                  cpu: "${REQUEST}"
+                limits:
+                  cpu: "${LIMIT}"
+          restartPolicy: OnFailure
+    EOF
+  loop: "{{ simulation_dirs }}"
+  loop_control:
+    loop_var: item
+  register: job_result
+  changed_when: job_result.rc == 0
+  failed_when: job_result.rc != 0

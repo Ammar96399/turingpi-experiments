@@ -1,0 +1,70 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: lp-operator-sa
+  namespace: lp-schedules-operator
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: lp-operator-role
+rules:
+  - apiGroups: ["graceful-degradation.io"]
+    resources: ["lpschedules", "lpschedules/status"]
+    verbs: ["get", "list", "watch", "patch"]
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "watch", "create", "delete", "patch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: lp-operator-rb
+subjects:
+  - kind: ServiceAccount
+    name: lp-operator-sa
+    namespace: lp-schedules-operator
+roleRef:
+  kind: ClusterRole
+  name: lp-operator-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lp-schedules-operator
+  namespace: lp-schedules-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lp-schedules-operator
+  template:
+    metadata:
+      labels:
+        app: lp-schedules-operator
+    spec:
+      nodeSelector:
+        role: server
+      serviceAccountName: lp-operator-sa
+      containers:
+      - name: lp-schedules-operator
+        image: docker.io/library/lp-schedules-operator:local
+        imagePullPolicy: Never
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "250m"

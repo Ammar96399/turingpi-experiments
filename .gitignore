@@ -1,0 +1,35 @@
+# Downloaded binaries and local environments
+distros/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local deployment configuration and credentials
+inventory.yml
+inventory.yaml
+inventory.local.*
+inventories/
+group_vars/
+host_vars/
+.env
+.env.*
+!.env.example
+.vault-password*
+*.pem
+*.key
+*kubeconfig*
+
+# Generated credentials, experiment results, and logs
+artifacts/
+results/
+*.log
+*.pid
+
+# Local thesis manuscript (cited in the documentation, not bundled)
+/main.pdf
+
+# Editor and OS files
+.vscode/
+.DS_Store

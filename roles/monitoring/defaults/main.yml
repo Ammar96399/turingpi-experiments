@@ -1,0 +1,18 @@
+---
+prometheus_helm_version: "27.5.0"
+prometheus_release_name: "prometheus"
+prometheus_chart_repo: "https://prometheus-community.github.io/helm-charts"
+prometheus_chart_name: "prometheus-community/prometheus"
+prometheus_service_port: 80
+prometheus_forwarded_port: 9090
+
+grafana_helm_version: "6.60.0"
+grafana_release_name: "grafana"
+grafana_chart_repo: "https://grafana.github.io/helm-charts"
+grafana_chart_name: "grafana/grafana"
+grafana_admin_password: "admin"
+
+# Prometheus monitoring configuration
+monitoring_namespace: "monitoring"
+scrape_interval: 5
+one_minute: 10

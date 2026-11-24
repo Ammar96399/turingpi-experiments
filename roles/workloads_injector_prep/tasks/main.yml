@@ -1,0 +1,29 @@
+---
+- name: Stop rabbitmq container
+  ansible.builtin.command: docker compose down
+  args:
+    chdir: "{{ playbook_dir }}/roles/workloads_injector/files/"
+
+- name: Wait 10 seconds
+  ansible.builtin.wait_for:
+    timeout: 10
+
+- name: Remove rabbitmq volume
+  ansible.builtin.command: docker volume rm files_rabbitmq-data
+  args:
+    chdir: "{{ playbook_dir }}/roles/workloads_injector/files/"
+  ignore_errors: true
+
+- name: Start rabbitmq container
+  ansible.builtin.command: docker compose up -d
+  args:
+    chdir: "{{ playbook_dir }}/roles/workloads_injector/files/"
+  register: script_result
+
+- name: Wait for rabbitmq to be up
+  ansible.builtin.wait_for:
+    port: 5672
+    delay: 10
+    timeout: 60
+    state: started
+  register: script_result

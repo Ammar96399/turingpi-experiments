@@ -1,0 +1,89 @@
+- name: Ensure iptables is installed (Ubuntu)
+  ansible.builtin.apt:
+    name: iptables
+    state: present
+  become: true
+  when: ansible_os_family == "Debian"
+
+- name: Disable k0s service
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: stopped
+    enabled: no
+  failed_when: false
+  with_items:
+    - k0scontroller
+    - k0sworker
+
+- name: Reset k0s configuration
+  ansible.builtin.command: k0s reset
+  become: true
+  failed_when: false
+
+- name: Flush iptables
+  ansible.builtin.command: iptables -F
+  become: true
+  ignore_errors: true
+
+- name: Remove all veth interfaces
+  ansible.builtin.shell: ip link show type veth | grep -oP '^\\d+:\\s+\\K(veth\\w+)' | xargs -I {} ip link delete {}
+  become: true
+  ignore_errors: true
+
+- name: Delete kube-bridge interface
+  ansible.builtin.command: ip link delete kube-bridge
+  become: true
+  failed_when: false
+  ignore_errors: true
+
+- name: Umount k0s filesystems
+  ansible.builtin.include_tasks: umount_with_children.yml
+  with_items:
+    - "{{ k0s_data_dir }}"
+    - "{{ k0s_libexec_dir }}"
+  loop_control:
+    loop_var: mounted_fs
+
+- name: Remove k0s directories
+  become: true
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "{{ k0s_config_dir }}"
+    - "{{ k0s_data_dir }}"
+    - "{{ k0s_libexec_dir }}"
+    - /var/lib/kubelet
+    - /var/lib/k0s/pki
+    - "{{ systemd_dest }}/k0scontroller.service"
+    - "{{ systemd_dest }}/k0sworker.service"
+    - "{{ k0s_binary_dest }}"
+
+- name: Remove CNI configuration files
+  become: true
+  ansible.builtin.file:
+    path: /etc/cni/net.d
+    state: absent
+
+- name: Remove containerd state
+  become: true
+  ansible.builtin.file:
+    path: /var/lib/containerd
+    state: absent
+
+- name: Restart containerd
+  ansible.builtin.systemd:
+    name: containerd
+    state: restarted
+  become: true
+  ignore_errors: true
+
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: true
+  ignore_errors: true
+
+- name: Reboot the node
+  ansible.builtin.reboot:
+    reboot_timeout: 300
+  become: true

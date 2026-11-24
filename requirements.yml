@@ -1,0 +1,9 @@
+---
+# Collections used by the Ansible roles. Bounds are not a lockfile.
+collections:
+  - name: ansible.posix
+    version: ">=1.5.0,<3.0.0"
+  - name: community.general
+    version: ">=9.0.0,<12.0.0"
+  - name: community.docker
+    version: ">=3.10.0,<5.0.0"

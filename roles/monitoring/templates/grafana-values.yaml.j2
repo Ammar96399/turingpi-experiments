@@ -1,0 +1,29 @@
+---
+# grafana-values.yaml.j2
+adminPassword: "{{ grafana_admin_password }}"  # Default admin password
+
+resources:
+  requests:
+    memory: "64Mi"  # Lightweight for RPi
+    cpu: "50m"
+  limits:
+    memory: "256Mi"
+    cpu: "100m"
+
+persistence:
+  enabled: true
+  size: 1Gi  # Small persistent volume for dashboards
+
+service:
+  type: ClusterIP
+  port: 80  # Default Grafana port
+
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+    - name: Prometheus
+      type: prometheus
+      url: http://{{ prometheus_release_name }}-server.{{ monitoring_namespace }}.svc.cluster.local:9090
+      access: proxy
+      isDefault: true

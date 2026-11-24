@@ -1,0 +1,393 @@
+configuration:
+  - name: high_1
+    input_file: vm_data_7dc3cc734b35a85b3f73601d5681f76b.csv
+    max_value: 1.0
+    time_shift_hours: 4
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: events_per_second
+    verbose_flag: -v
+  - name: high_2
+    input_file: vm_data_8166ac0a16708ef013e353c42c710b99.csv
+    max_value: 1.0
+    time_shift_hours: -4
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: compressing_mips
+    verbose_flag: -v
+  - name: low_1
+    input_file: vm_data_2f189b40edc7a102bc477594f4bfb197.csv
+    max_value: 0.2
+    time_shift_hours: -5
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: events_per_second
+    verbose_flag: -v
+  - name: low_2
+    input_file: vm_data_0fbe0db40b8121ba0bb64d0e736cfbf2.csv
+    max_value: 0.2
+    time_shift_hours: -4
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: compressing_mips
+    verbose_flag: -v
+  - name: low_3
+    input_file: vm_data_86c90dbb990e22a932fec67d4a03088f.csv
+    max_value: 0.2
+    time_shift_hours: -4
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: decompressing_mips
+    verbose_flag: -v
+  - name: low_4
+    input_file: vm_data_dcdfea5c41e285b4561b6e8757c7b5ac.csv
+    max_value: 0.2
+    time_shift_hours: -4
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: decompressing_mips
+    verbose_flag: -v
+  - name: low_5
+    input_file: vm_data_60121aee39cf70e5969205d079d97042.csv
+    max_value: 0.2
+    time_shift_hours: -4
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: decompressing_mips
+    verbose_flag: -v
+  - name: high_3
+    input_file: vm_data_7dc3cc734b35a85b3f73601d5681f76b.csv
+    max_value: 1.0
+    time_shift_hours: 4
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: events_per_second
+    verbose_flag: -v
+  - name: high_4
+    input_file: vm_data_8166ac0a16708ef013e353c42c710b99.csv
+    max_value: 1.0
+    time_shift_hours: -5
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: compressing_mips
+    verbose_flag: -v
+  - name: low_6
+    input_file: vm_data_2f189b40edc7a102bc477594f4bfb197.csv
+    max_value: 0.2
+    time_shift_hours: -5
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: events_per_second
+    verbose_flag: -v
+  - name: low_7
+    input_file: vm_data_0fbe0db40b8121ba0bb64d0e736cfbf2.csv
+    max_value: 0.2
+    time_shift_hours: -5
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: compressing_mips
+    verbose_flag: -v
+  - name: low_8
+    input_file: vm_data_86c90dbb990e22a932fec67d4a03088f.csv
+    max_value: 0.2
+    time_shift_hours: -5
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: decompressing_mips
+    verbose_flag: -v
+  - name: low_9
+    input_file: vm_data_dcdfea5c41e285b4561b6e8757c7b5ac.csv
+    max_value: 0.2
+    time_shift_hours: -5
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: decompressing_mips
+    verbose_flag: -v
+  - name: low_10
+    input_file: vm_data_60121aee39cf70e5969205d079d97042.csv
+    max_value: 0.2
+    time_shift_hours: -5
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: decompressing_mips
+    verbose_flag: -v
+  - name: high_5
+    input_file: vm_data_7dc3cc734b35a85b3f73601d5681f76b.csv
+    max_value: 1.0
+    time_shift_hours: 4
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: events_per_second
+    verbose_flag: -v
+  - name: high_6
+    input_file: vm_data_8166ac0a16708ef013e353c42c710b99.csv
+    max_value: 1.0
+    time_shift_hours: -6
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: compressing_mips
+    verbose_flag: -v
+  - name: low_11
+    input_file: vm_data_2f189b40edc7a102bc477594f4bfb197.csv
+    max_value: 0.2
+    time_shift_hours: -6
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: events_per_second
+    verbose_flag: -v
+  - name: low_12
+    input_file: vm_data_0fbe0db40b8121ba0bb64d0e736cfbf2.csv
+    max_value: 0.2
+    time_shift_hours: -6
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: compressing_mips
+    verbose_flag: -v
+  - name: low_13
+    input_file: vm_data_86c90dbb990e22a932fec67d4a03088f.csv
+    max_value: 0.2
+    time_shift_hours: -6
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: decompressing_mips
+    verbose_flag: -v
+  - name: low_14
+    input_file: vm_data_dcdfea5c41e285b4561b6e8757c7b5ac.csv
+    max_value: 0.2
+    time_shift_hours: -6
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: decompressing_mips
+    verbose_flag: -v
+  - name: low_15
+    input_file: vm_data_60121aee39cf70e5969205d079d97042.csv
+    max_value: 0.2
+    time_shift_hours: -6
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: decompressing_mips
+    verbose_flag: -v
+  - name: high_7
+    input_file: vm_data_7dc3cc734b35a85b3f73601d5681f76b.csv
+    max_value: 1.0
+    time_shift_hours: 4
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: events_per_second
+    verbose_flag: -v
+  - name: high_8
+    input_file: vm_data_8166ac0a16708ef013e353c42c710b99.csv
+    max_value: 1.0
+    time_shift_hours: -7
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: compressing_mips
+    verbose_flag: -v
+  - name: low_16
+    input_file: vm_data_2f189b40edc7a102bc477594f4bfb197.csv
+    max_value: 0.2
+    time_shift_hours: -7
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: events_per_second
+    verbose_flag: -v
+  - name: low_17
+    input_file: vm_data_0fbe0db40b8121ba0bb64d0e736cfbf2.csv
+    max_value: 0.2
+    time_shift_hours: -7
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: compressing_mips
+    verbose_flag: -v
+  - name: low_18
+    input_file: vm_data_86c90dbb990e22a932fec67d4a03088f.csv
+    max_value: 0.2
+    time_shift_hours: -7
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: decompressing_mips
+    verbose_flag: -v
+  - name: low_19
+    input_file: vm_data_dcdfea5c41e285b4561b6e8757c7b5ac.csv
+    max_value: 0.2
+    time_shift_hours: -7
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: decompressing_mips
+    verbose_flag: -v
+  - name: low_20
+    input_file: vm_data_60121aee39cf70e5969205d079d97042.csv
+    max_value: 0.2
+    time_shift_hours: -7
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: decompressing_mips
+    verbose_flag: -v
+  - name: high_9
+    input_file: vm_data_7dc3cc734b35a85b3f73601d5681f76b.csv
+    max_value: 1.0
+    time_shift_hours: 4
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: events_per_second
+    verbose_flag: -v
+  - name: high_10
+    input_file: vm_data_8166ac0a16708ef013e353c42c710b99.csv
+    max_value: 1.0
+    time_shift_hours: -8
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: compressing_mips
+    verbose_flag: -v
+  - name: low_21
+    input_file: vm_data_2f189b40edc7a102bc477594f4bfb197.csv
+    max_value: 0.2
+    time_shift_hours: -8
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: events_per_second
+    verbose_flag: -v
+  - name: low_22
+    input_file: vm_data_0fbe0db40b8121ba0bb64d0e736cfbf2.csv
+    max_value: 0.2
+    time_shift_hours: -8
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: compressing_mips
+    verbose_flag: -v
+  - name: low_23
+    input_file: vm_data_86c90dbb990e22a932fec67d4a03088f.csv
+    max_value: 0.2
+    time_shift_hours: -8
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: decompressing_mips
+    verbose_flag: -v
+  - name: low_24
+    input_file: vm_data_dcdfea5c41e285b4561b6e8757c7b5ac.csv
+    max_value: 0.2
+    time_shift_hours: -8
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: decompressing_mips
+    verbose_flag: -v
+  - name: low_25
+    input_file: vm_data_60121aee39cf70e5969205d079d97042.csv
+    max_value: 0.2
+    time_shift_hours: -8
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: decompressing_mips
+    verbose_flag: -v
+  - name: high_11
+    input_file: vm_data_7dc3cc734b35a85b3f73601d5681f76b.csv
+    max_value: 1.0
+    time_shift_hours: 4
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: events_per_second
+    verbose_flag: -v
+  - name: high_12
+    input_file: vm_data_8166ac0a16708ef013e353c42c710b99.csv
+    max_value: 1.0
+    time_shift_hours: -3
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: compressing_mips
+    verbose_flag: -v
+  - name: low_26
+    input_file: vm_data_2f189b40edc7a102bc477594f4bfb197.csv
+    max_value: 0.2
+    time_shift_hours: -3
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: events_per_second
+    verbose_flag: -v
+  - name: low_27
+    input_file: vm_data_0fbe0db40b8121ba0bb64d0e736cfbf2.csv
+    max_value: 0.2
+    time_shift_hours: -3
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: compressing_mips
+    verbose_flag: -v
+  - name: low_28
+    input_file: vm_data_86c90dbb990e22a932fec67d4a03088f.csv
+    max_value: 0.2
+    time_shift_hours: -3
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: decompressing_mips
+    verbose_flag: -v
+  - name: low_29
+    input_file: vm_data_dcdfea5c41e285b4561b6e8757c7b5ac.csv
+    max_value: 0.2
+    time_shift_hours: -3
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: decompressing_mips
+    verbose_flag: -v
+  - name: low_30
+    input_file: vm_data_60121aee39cf70e5969205d079d97042.csv
+    max_value: 0.2
+    time_shift_hours: -3
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: decompressing_mips
+    verbose_flag: -v
+  - name: high_13
+    input_file: vm_data_7dc3cc734b35a85b3f73601d5681f76b.csv
+    max_value: 1.0
+    time_shift_hours: 4
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: events_per_second
+    verbose_flag: -v
+  - name: high_14
+    input_file: vm_data_8166ac0a16708ef013e353c42c710b99.csv
+    max_value: 1.0
+    time_shift_hours: -2
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: compressing_mips
+    verbose_flag: -v
+  - name: low_31
+    input_file: vm_data_2f189b40edc7a102bc477594f4bfb197.csv
+    max_value: 0.2
+    time_shift_hours: -2
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: events_per_second
+    verbose_flag: -v
+  - name: low_32
+    input_file: vm_data_0fbe0db40b8121ba0bb64d0e736cfbf2.csv
+    max_value: 0.2
+    time_shift_hours: -2
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: compressing_mips
+    verbose_flag: -v
+  - name: low_33
+    input_file: vm_data_86c90dbb990e22a932fec67d4a03088f.csv
+    max_value: 0.2
+    time_shift_hours: -2
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: decompressing_mips
+    verbose_flag: -v
+  - name: low_34
+    input_file: vm_data_dcdfea5c41e285b4561b6e8757c7b5ac.csv
+    max_value: 0.2
+    time_shift_hours: -2
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: decompressing_mips
+    verbose_flag: -v
+  - name: low_35
+    input_file: vm_data_60121aee39cf70e5969205d079d97042.csv
+    max_value: 0.2
+    time_shift_hours: -2
+    day_to_extract: 3
+    rpi_model: cm4
+    metric: decompressing_mips
+    verbose_flag: -v

@@ -1,0 +1,116 @@
+---
+- name: Check if Helm is installed
+  ansible.builtin.command: "{{ helm_binary_path }} version"
+  register: helm_check
+  ignore_errors: true
+  changed_when: false
+
+- name: Install Helm for ARM64
+  when: helm_check.rc != 0
+  block:
+    - name: Download Helm binary for arm64
+      ansible.builtin.get_url:
+        url: "https://get.helm.sh/helm-{{ helm_version }}-linux-arm64.tar.gz"
+        dest: "/tmp/helm-{{ helm_version }}-linux-arm64.tar.gz"
+        mode: "0644"
+
+    - name: Extract Helm binary
+      ansible.builtin.unarchive:
+        src: "/tmp/helm-{{ helm_version }}-linux-arm64.tar.gz"
+        dest: "/tmp"
+        remote_src: true
+
+    - name: Move Helm binary to /usr/local/bin
+      ansible.builtin.copy:
+        src: "/tmp/linux-arm64/helm"
+        dest: "{{ helm_binary_path }}"
+        mode: "0755"
+        owner: root
+        group: root
+        remote_src: true
+
+    - name: Ensure Helm binary is executable
+      ansible.builtin.file:
+        path: "{{ helm_binary_path }}"
+        mode: "0755"
+        owner: root
+        group: root
+
+    - name: Verify Helm binary integrity
+      ansible.builtin.command: "{{ helm_binary_path }} version"
+      register: helm_verify
+      changed_when: false
+      failed_when: helm_verify.rc != 0
+
+    - name: Clean up Helm installation files
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "/tmp/helm-{{ helm_version }}-linux-arm64.tar.gz"
+        - "/tmp/linux-arm64"
+
+- name: Uninstall Prometheus
+  ansible.builtin.command: >
+    {{ helm_binary_path }}
+    --kubeconfig {{ k3s_kubeconfig }}
+    uninstall {{ prometheus_release_name }}
+    --namespace {{ monitoring_namespace }}
+  ignore_errors: true
+  changed_when: false
+
+- name: Delete monitoring namespace
+  ansible.builtin.command: >
+    k0s kubectl --kubeconfig {{ k3s_kubeconfig }} delete namespace {{ monitoring_namespace }}
+  ignore_errors: true
+  changed_when: false
+
+- name: Add Prometheus Helm repository
+  ansible.builtin.command: "{{ helm_binary_path }} repo add prometheus-community {{ prometheus_chart_repo }}"
+  register: repo_add
+  changed_when: repo_add.rc == 0
+  failed_when: repo_add.rc != 0 and "already exists" not in repo_add.stderr
+
+- name: Update Helm repositories
+  ansible.builtin.command: "{{ helm_binary_path }} repo update"
+  changed_when: false
+
+- name: Create monitoring namespace
+  ansible.builtin.command: "k0s kubectl --kubeconfig {{ k3s_kubeconfig }} create namespace {{ monitoring_namespace }}"
+  register: ns_create
+  changed_when: ns_create.rc == 0
+  failed_when: ns_create.rc != 0 and "already exists" not in ns_create.stderr
+
+# Prometheus Deployment
+- name: Copy Prometheus custom values file
+  ansible.builtin.template:
+    src: "prometheus-values.yaml.j2"
+    dest: "/tmp/prometheus-values.yaml"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart Prometheus
+
+- name: Deploy Prometheus via Helm
+  ansible.builtin.command: >
+    {{ helm_binary_path }} upgrade --install {{ prometheus_release_name }}
+    {{ prometheus_chart_name }}
+    --version {{ prometheus_helm_version }}
+    --namespace {{ monitoring_namespace }}
+    --kubeconfig {{ k3s_kubeconfig }}
+    -f /tmp/prometheus-values.yaml
+  register: helm_install_prometheus
+  changed_when: helm_install_prometheus.rc == 0
+  failed_when: helm_install_prometheus.rc != 0
+
+- name: Debug Prometheus deployment output
+  ansible.builtin.debug:
+    msg: "{{ helm_install_prometheus.stdout_lines + helm_install_prometheus.stderr_lines }}"
+  when: helm_install_prometheus.rc != 0
+
+- name: Wait for Prometheus to be ready
+  ansible.builtin.command: >
+    k0s kubectl --kubeconfig {{ k3s_kubeconfig }}
+    -n {{ monitoring_namespace }}
+    wait --for=condition=ready pod -l app.kubernetes.io/name=prometheus --timeout=300s
+  changed_when: false

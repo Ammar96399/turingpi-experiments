@@ -1,0 +1,182 @@
+---
+server:
+  persistentVolume:
+    enabled: false
+  resources:
+    requests:
+      memory: "1024Mi"
+      cpu: "300m"
+    limits:
+      memory: "2048Mi"
+      cpu: "700m"
+  service:
+    type: NodePort
+    port: 9090
+    nodePort: 30090
+  global:
+    scrape_interval: "{{ scrape_interval }}s"
+    evaluation_interval: "{{ scrape_interval }}s"
+    scrape_timeout: "{{ scrape_interval }}s"
+  remoteWrite:
+    - url: "http://victoria-metrics-victoria-metrics-single-server.{{ monitoring_namespace }}.svc.cluster.local:8428/api/v1/write"
+      queue_config:
+        max_samples_per_send: 1000
+        max_shards: 10
+        capacity: 10000
+  nodeSelector:
+    role: server
+
+extraScrapeConfigs: |
+  - job_name: 'simulation-pods'
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+            - simulation
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        target_label: __address__
+      - source_labels: [__meta_kubernetes_namespace]
+        action: replace
+        target_label: namespace
+      - source_labels: [__meta_kubernetes_pod_name]
+        action: replace
+        target_label: pod
+      - source_labels: [__meta_kubernetes_pod_label_job]
+        action: replace
+        target_label: job
+
+serverFiles:
+  recording_rules.yml:
+    groups:
+      - name: simulation_resource_usage
+        interval: "{{ one_minute |int }}s"
+        rules:
+          # CPU Usage - Current (every scrape_interval * 2) - grouped by job
+          - record: 'job:cpu_usage_seconds:rate1m'
+            expr: |
+              sum by (job, namespace) (
+                label_replace(
+                  rate(container_cpu_usage_seconds_total{namespace="simulation", container!="", container!="POD"}[1m]),
+                  "job",
+                  "$1",
+                  "pod",
+                  "application-simulator-([a-z0-9]+)-[a-z0-9]+$"
+                )
+              )
+          
+          # Memory Usage - Current (every scrape_interval * 2) - grouped by job
+          - record: 'job:memory_usage_bytes:current'
+            expr: |
+              sum by (job, namespace) (
+                label_replace(
+                  container_memory_working_set_bytes{namespace="simulation", container!="", container!="POD"},
+                  "job",
+                  "$1",
+                  "pod",
+                  "application-simulator-([a-z0-9]+)-[a-z0-9]+$"
+                )
+              )
+          
+          # CPU Usage - 1 hour average
+          - record: 'job:cpu_usage_seconds:avg600s'
+            expr: |
+              avg_over_time(job:cpu_usage_seconds:rate1m[600s])
+          
+          # Memory Usage - 1 hour average
+          - record: 'job:memory_usage_bytes:avg600s'
+            expr: |
+              avg_over_time(job:memory_usage_bytes:current[600s])
+          
+          # CPU Usage - 12 hour average
+          - record: 'job:cpu_usage_seconds:avg7200s'
+            expr: |
+              avg_over_time(job:cpu_usage_seconds:rate1m[7200s])
+          
+          # Memory Usage - 12 hour average
+          - record: 'job:memory_usage_bytes:avg7200s'
+            expr: |
+              avg_over_time(job:memory_usage_bytes:current[7200s])
+          
+          # CPU Usage - 24 hour average
+          - record: 'job:cpu_usage_seconds:avg14400s'
+            expr: |
+              avg_over_time(job:cpu_usage_seconds:rate1m[14400s])
+          
+          # Memory Usage - 24 hour average
+          - record: 'job:memory_usage_bytes:avg14400s'
+            expr: |
+              avg_over_time(job:memory_usage_bytes:current[14400s])
+          
+          # Network I/O - Current
+          - record: 'job:network_receive_bytes:rate1m'
+            expr: |
+              sum by (job, namespace) (
+                label_replace(
+                  rate(container_network_receive_bytes_total{namespace="simulation"}[1m]),
+                  "job",
+                  "$1",
+                  "pod",
+                  "application-simulator-([a-z0-9]+)-[a-z0-9]+$"
+                )
+              )
+          
+          - record: 'job:network_transmit_bytes:rate1m'
+            expr: |
+              sum by (job, namespace) (
+                label_replace(
+                  rate(container_network_transmit_bytes_total{namespace="simulation"}[1m]),
+                  "job",
+                  "$1",
+                  "pod",
+                  "application-simulator-([a-z0-9]+)-[a-z0-9]+$"
+                )
+              )
+          
+          # Disk I/O - Current
+          - record: 'job:disk_read_bytes:rate1m'
+            expr: |
+              sum by (job, namespace) (
+                label_replace(
+                  rate(container_fs_reads_bytes_total{namespace="simulation"}[1m]),
+                  "job",
+                  "$1",
+                  "pod",
+                  "application-simulator-([a-z0-9]+)-[a-z0-9]+$"
+                )
+              )
+          
+          - record: 'job:disk_write_bytes:rate1m'
+            expr: |
+              sum by (job, namespace) (
+                label_replace(
+                  rate(container_fs_writes_bytes_total{namespace="simulation"}[1m]),
+                  "job",
+                  "$1",
+                  "pod",
+                  "application-simulator-([a-z0-9]+)-[a-z0-9]+$"
+                )
+              )
+
+prometheus-node-exporter:
+  enabled: true
+  resources:
+    requests:
+      memory: "511Mi"
+      cpu: "400m"
+    limits:
+      memory: "1024Mi"
+      cpu: "700m"
+  
+alertmanager:
+  enabled: false

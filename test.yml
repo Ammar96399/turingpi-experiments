@@ -1,0 +1,193 @@
+---
+# Freeze experiment timestamp so results_dir and experiment_id stay consistent
+- name: Set experiment timestamp
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Compute run timestamp on localhost
+      ansible.builtin.set_fact:
+        run_timestamp: "{{ lookup('pipe', 'date +%y-%m-%d-%H-%M') }}"
+      run_once: true
+      delegate_to: localhost
+      delegate_facts: true
+
+    - name: Set experiment variables for all hosts
+      ansible.builtin.set_fact:
+        experiment_id: "{{ hostvars['localhost'].run_timestamp }}"
+        results_dir: "{{ (results_dir | regex_replace('/[^/]+$','')) }}/{{ hostvars['localhost'].run_timestamp }}"
+
+#- name: Setup monitoring
+#  hosts: server
+#  gather_facts: true
+#  become: true
+#  roles:
+#    - role: monitoring
+
+# - name: Setup get request application
+#   hosts: server
+#   gather_facts: true
+#   become: true
+#   roles:
+#     - role: get_request
+
+# - name: Setup get limit application
+#   hosts: server
+#   gather_facts: true
+#   become: true
+#   roles:
+#     - role: get_limit
+
+- name: Setup lpre_schedules problem solver
+  hosts: server
+  gather_facts: true
+  become: true
+  vars:
+    lp_force_max_solution: false
+    lp_force_min_solution: true
+  roles:
+    - role: lp_schedules
+
+# - name: Setup lp_schedules_operator
+#   hosts: server
+#   gather_facts: true
+#   become: true
+#   roles:
+#     - role: lp_schedules_operator
+
+# - name: Prepare simulation prerequisites
+#   hosts: turing_pi_cluster
+#   gather_facts: true
+#   become: true
+#   roles:
+#     - role: deploy_applications_prereq
+
+# - name: Setup app_energy_estimator
+#   hosts: server
+#   gather_facts: true
+#   become: true
+#   roles:
+#     - role: app_energy_estimator
+
+- name: Emulation preparation
+  hosts: server
+  become: true
+  gather_facts: true
+  roles:
+    - role: emulation_preparation
+
+- name: Manage results directory
+  hosts: localhost
+  gather_facts: true
+  tasks:
+    - name: Clean results_dir
+      ansible.builtin.file:
+        path: "{{ results_dir }}"
+        state: absent
+
+    - name: Recreate results_dir
+      ansible.builtin.file:
+        path: "{{ results_dir }}"
+        state: directory
+        mode: "0755"
+
+# - name: Delete simulation jobs if they exist
+#   hosts: server
+#   become: true
+#   gather_facts: true
+#   tasks:
+#     - name: Delete jobs in simulation namespace
+#       ansible.builtin.shell: |
+#         k0s kubectl delete jobs --all -n simulation --ignore-not-found=true
+
+- name: Run application preparation
+  hosts: turing_pi_cluster
+  gather_facts: true
+  become: true
+  roles:
+    - role: deploy_applications_prereq
+
+- name: Run time_proxy
+  hosts: localhost
+  gather_facts: true
+  roles:
+    - role: time_proxy
+  vars:
+    reset_time_proxy: false
+
+- name: Run system measurements
+  hosts: localhost
+  gather_facts: true
+  roles:
+    - role: system_measurements
+
+- name: Setup qos_monitoring
+  hosts: localhost
+  gather_facts: true
+  roles:
+    - role: qos_monitoring
+
+- name: Setup prometheus_to_time_proxy
+  hosts: localhost
+  gather_facts: true
+  roles:
+    - role: prometheus_to_time_proxy
+
+- name: Reset time_proxy
+  hosts: localhost
+  gather_facts: true
+  roles:
+    - role: time_proxy
+  vars:
+    reset_time_proxy: true
+
+# - name: Deploy the operator
+#   hosts: server
+#   gather_facts: true
+#   become: true
+#   roles:
+#     - role: lp_schedules_operator
+
+- name: Setup crd_creator
+  hosts: server
+  gather_facts: true
+  roles:
+    - role: crd_creator
+  vars:
+    reset_crd_creator: true
+
+- name: Run hourly solar energy model
+  hosts: localhost
+  gather_facts: true
+  roles:
+    - role: solar_energy_model
+
+- name: Prepare injecting workloads
+  hosts: localhost
+  gather_facts: true
+  roles:
+    - role: workloads_injector_prep
+  vars:
+    # observatory: "event_driven_observatory"
+    # observatory: "long_term_observatory"
+    observatory: "nepal_scenario"
+    
+- name: Start node control
+  hosts: server
+  gather_facts: true
+  become: false
+  roles:
+    - role: node_control
+  vars:
+    window_size: 30
+    min_threshold: 30
+    max_threshold: 70
+
+- name: Inject workload
+  hosts: localhost
+  gather_facts: true
+  roles:
+    - role: workloads_injector
+  vars:
+    # observatory: "event_driven_observatory"
+    # observatory: "long_term_observatory"
+    observatory: "nepal_scenario"

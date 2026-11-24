@@ -1,0 +1,26 @@
+---
+#- name: Turn on nodes
+#  ansible.builtin.shell: |
+#    ssh root@131.254.100.14 tpi power --node 3 on
+#    ssh root@131.254.100.14 tpi power --node 2 on
+#  register: drain_result
+#  failed_when: drain_result.rc != 0
+#  changed_when: drain_result.rc == 0
+
+- name: Ping nodes to check if they are reachable
+  ansible.builtin.ping:
+    data: "pong"
+  loop:
+    - rk1-1
+    - cm4-0
+  register: ping_result
+  failed_when: ping_result.failed
+
+- name: Uncordon nodes
+  ansible.builtin.shell: |
+    k0s kubectl uncordon rk1-1
+    k0s kubectl uncordon cm4-0
+  register: uncordon_result
+  failed_when: uncordon_result.rc != 0
+  changed_when: uncordon_result.rc == 0
+  become: true

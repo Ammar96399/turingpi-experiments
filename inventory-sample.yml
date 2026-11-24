@@ -1,0 +1,68 @@
+---
+# Copy to inventory.yml (ignored by Git) and adapt to your lab.
+# Addresses below are reserved documentation addresses, not usable hosts.
+all:
+  vars:
+    one_minute: 10 # Wall-clock seconds per simulated minute.
+    scrape_interval: 5
+    local_user: "{{ lookup('env', 'USER') }}"
+    workload: longterm
+    experiment_id: "{{ now(utc=True).strftime('%y-%m-%d-%H-%M') }}"
+    results_dir: "{{ inventory_dir }}/results/{{ experiment_id }}"
+    solar_lat: 45.0
+    solar_lon: 6.0
+    solar_year: 2023
+    solar_start: "2019-09-20"
+    solar_end: "2019-09-29"
+    wp: 100.0
+    stc_irradiance: 1000.0
+    system_losses: 0.14
+    max_charge_w: 800.0
+    charge_efficiency: 0.95
+    discharge_efficiency: 0.94
+    battery_capacity_wh: 500.0
+    initial_soc_wh: 250.0
+    soc_crit_wh: 100.0
+    soc_min_wh: 0.0
+    static_energy_wh: 124.0
+
+turing_pi_cluster:
+  children:
+    server:
+      hosts:
+        controller-0:
+          ansible_host: 192.0.2.10
+          node_labels: role=server,model=rk1
+    agent:
+      hosts:
+        worker-0:
+          ansible_host: 192.0.2.11
+          node_labels: role=worker,model=rk1
+        worker-1:
+          ansible_host: 192.0.2.12
+          node_labels: role=worker,model=cm4
+  vars:
+    ansible_port: 22
+    ansible_user: cluster
+    k0s_version: v1.34.3+k0s.0
+    api_endpoint: "{{ hostvars[groups['server'][0]]['ansible_host'] }}"
+    helm_version: "v3.17.0"
+    helm_binary_path: "/usr/local/bin/helm"
+    # Legacy variable name: commands still use k0s, not k3s.
+    k3s_kubeconfig: "/home/{{ ansible_user }}/k0s-kubeconfig.yml"
+    monitoring_namespace: "monitoring"
+
+localhost:
+  hosts:
+    localhost:
+      ansible_connection: local
+  vars:
+    kubeconfig: "{{ inventory_dir }}/artifacts/k0s-kubeconfig.yml"
+    tz_offset_hours: 0
+    influxdb_url: "http://localhost:8086"
+    influxdb_org: "research"
+    influxdb_bucket: "experiments"
+    # Required to START time_proxy. Set in a Vault-encrypted private inventory:
+    # influxdb_token: ...
+    # The proxy has no authentication. Override only on a restricted lab network.
+    time_proxy_host: "127.0.0.1"

@@ -1,0 +1,9 @@
+---
+k0s_config_dir: /etc/k0s
+k0s_data_dir: /var/lib/k0s
+k0s_libexec_dir: /usr/libexec/k0s/
+k0s_use_custom_config: false
+api_port: 6443  # noqa var-naming[no-role-prefix]
+server_group: initial_controller  # noqa var-naming[no-role-prefix]
+rpi4b_agent_group: rpi4b-agent  # noqa var-naming[no-role-prefix]
+rpi5_agent_group: rpi5-agent  # noqa var-naming[no-role-prefix]

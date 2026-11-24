@@ -1,0 +1,184 @@
+---
+- name: Ensure lp-schedules-operator namespace exists
+  ansible.builtin.command: >
+    k0s kubectl --kubeconfig {{ k3s_kubeconfig }}
+    create namespace lp-schedules-operator
+  ignore_errors: true
+  changed_when: false
+
+- name: Delete crd if it exists
+  ansible.builtin.command: >
+    k0s kubectl --kubeconfig {{ k3s_kubeconfig }}
+    delete crd lpschedules.graceful-degradation.io
+    --ignore-not-found
+  changed_when: false
+
+- name: Render LPSchedule CRD
+  ansible.builtin.template:
+    src: "{{ role_path }}/../lp_schedules_operator/templates/crd.yaml.j2"
+    dest: "/tmp/lpschedule_crd.yaml"
+    mode: "0644"
+
+- name: Apply LPSchedule CRD
+  ansible.builtin.command: >
+    k0s kubectl --kubeconfig {{ k3s_kubeconfig }}
+    apply -f /tmp/lpschedule_crd.yaml
+  changed_when: false
+
+- name: Ensure crd-creator RBAC
+  ansible.builtin.shell: |
+    k0s kubectl --kubeconfig {{ k3s_kubeconfig }} apply -f - <<EOF
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: crd-creator
+      namespace: lp-schedules-operator
+    ---
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      name: crd-creator
+      namespace: lp-schedules-operator
+    rules:
+      - apiGroups: ["graceful-degradation.io"]
+        resources: ["lpschedules"]
+        verbs: ["get", "list", "watch", "create", "patch", "update"]
+    ---
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      name: crd-creator
+      namespace: lp-schedules-operator
+    subjects:
+      - kind: ServiceAccount
+        name: crd-creator
+        namespace: lp-schedules-operator
+    roleRef:
+      kind: Role
+      name: crd-creator
+      apiGroup: rbac.authorization.k8s.io
+    EOF
+
+- name: Create the crd_creator build directory
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/crd_creator"
+    state: directory
+    mode: "0755"
+  when: reset_crd_creator | default(false)
+
+- name: Delete the crd_creator build directory if exists
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/crd_creator"
+    state: absent
+  when: reset_crd_creator | default(false)
+
+- name: Recreate the crd_creator build directory
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/crd_creator"
+    state: directory
+    mode: "0755"
+
+- name: Copy the crd_creator script
+  ansible.builtin.copy:
+    src: generate_crd_with_energy.py
+    dest: "{{ ansible_env.HOME }}/crd_creator"
+    mode: "0755"
+    force: true
+
+- name: Copy the lpschedule template
+  ansible.builtin.copy:
+    src: lpschedule_template.yml
+    dest: "{{ ansible_env.HOME }}/crd_creator"
+    mode: "0644"
+    force: true
+
+- name: Copy the requirements file
+  ansible.builtin.copy:
+    src: requirements.txt
+    dest: "{{ ansible_env.HOME }}/crd_creator"
+    mode: "0644"
+    force: true
+
+- name: Copy the Dockerfile
+  ansible.builtin.copy:
+    src: Dockerfile
+    dest: "{{ ansible_env.HOME }}/crd_creator"
+    mode: "0755"
+    force: true
+
+- name: Remove docker image
+  ansible.builtin.command: sudo docker image rm crd-creator:local
+  ignore_errors: true
+  when: reset_crd_creator | default(false)
+
+- name: Build the docker image
+  community.docker.docker_image:
+    build:
+      path: "{{ ansible_env.HOME }}/crd_creator"
+      nocache: true
+    name: crd-creator
+    source: build
+    tag: local
+  when: reset_crd_creator | default(false)
+
+- name: Check if the docker image tar file exists
+  ansible.builtin.stat:
+    path: "{{ ansible_env.HOME }}/crd_creator/crd-creator.tar"
+  register: docker_image_tar
+  when: reset_crd_creator | default(false)
+
+- name: Delete the docker image tar file
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/crd_creator/crd-creator.tar"
+    state: absent
+  when: docker_image_tar.stat.exists | default(false) and reset_crd_creator | default(false)
+
+- name: Save the docker image to a tar file
+  ansible.builtin.shell: |
+    docker save crd-creator:local > "{{ ansible_env.HOME }}/crd_creator/crd-creator.tar"
+  when: reset_crd_creator | default(false)
+
+- name: Remove the docker image from the master node
+  ansible.builtin.command: sudo k0s ctr images rm docker.io/library/crd-creator:local
+  ignore_errors: true
+  when: reset_crd_creator | default(false)
+
+- name: Import the docker image to the master node
+  ansible.builtin.command: sudo k0s ctr images import {{ ansible_facts['env']['HOME'] }}/crd_creator/crd-creator.tar
+  when: reset_crd_creator | default(false)
+
+- name: Delete crd-creator deployment if it exists
+  ansible.builtin.command: >
+    k0s kubectl --kubeconfig {{ k3s_kubeconfig }}
+    delete deployment crd-creator
+    -n lp-schedules-operator
+    --ignore-not-found
+  changed_when: false
+
+- name: Run crd-creator deployment
+  ansible.builtin.shell: |
+    k0s kubectl --kubeconfig {{ k3s_kubeconfig }} apply -f - <<EOF
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: crd-creator
+      namespace: lp-schedules-operator
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: crd-creator
+      template:
+        metadata:
+          labels:
+            app: crd-creator
+        spec:
+          nodeSelector:
+            role: server
+          serviceAccountName: crd-creator
+          containers:
+            - name: crd-creator
+              image: docker.io/library/crd-creator:local
+              imagePullPolicy: Never
+              command: ["python", "/app/generate_crd_with_energy.py", "--input", "/app/lpschedule_template.yml", "--output", "/app/test.energy.yml", "--experiment-id", "{{ experiment_id }}"]
+    EOF

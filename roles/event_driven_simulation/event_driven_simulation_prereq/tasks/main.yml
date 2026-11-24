@@ -1,0 +1,182 @@
+---
+- name: Check if Docker is installed
+  ansible.builtin.stat:
+    path: /usr/bin/docker
+  register: docker_installed
+
+- name: Download Docker installation script
+  ansible.builtin.get_url:
+    url: https://test.docker.com
+    dest: /tmp/get-docker.sh
+    mode: "0755"
+  when: not docker_installed.stat.exists
+
+- name: Execute Docker installation script
+  ansible.builtin.command:
+    cmd: sh /tmp/get-docker.sh
+  args:
+    creates: /usr/bin/docker
+  when: not docker_installed.stat.exists
+  register: docker_install_result
+  changed_when: docker_install_result.rc == 0
+
+- name: Ensure Docker service is running
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Add user to docker group
+  ansible.builtin.user:
+    name: "{{ ansible_user }}"
+    groups: docker
+    append: true
+
+- name: Create the simulation directory
+  ansible.builtin.file:
+    path: /home/{{ ansible_user }}/simulation
+    state: directory
+    mode: "0755"
+    owner: "{{ ansible_user }}"
+
+- name: Copy the power usage script
+  ansible.builtin.copy:
+    src: power_usage.py
+    dest: /home/{{ ansible_user }}/simulation
+    mode: "0755"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    force: true
+
+- name: Copy psutils monitoring script to the nodes
+  ansible.builtin.copy:
+    src: log_cpu_usage.py
+    dest: /home/{{ ansible_user }}/simulation
+    mode: "0755"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    force: true
+
+- name: Create the event-driven simulation directory
+  ansible.builtin.file:
+    path: /home/{{ ansible_user }}/simulation/event_driven_simulation
+    state: directory
+    mode: "0755"
+    owner: "{{ ansible_user }}"
+
+- name: Checks if the event driven workload directory exists
+  ansible.builtin.stat:
+    path: /home/{{ ansible_user }}/simulation/event_driven_simulation/event_driven_observatory
+  register: event_driven_observatory
+
+- name: Copy the event-driven data to the master
+  ansible.builtin.copy:
+    src: event_driven_observatory
+    dest: "/home/{{ ansible_user }}/simulation/event_driven_simulation"
+    mode: "0755"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  when: not event_driven_observatory.stat.exists
+
+- name: Copy the sysbench script
+  ansible.builtin.copy:
+    src: sysbench_from_csv.py
+    dest: "/home/{{ ansible_user }}/simulation/event_driven_simulation"
+    mode: "0755"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    force: true
+
+- name: Copy the Dockerfile
+  ansible.builtin.copy:
+    src: Dockerfile
+    dest: "/home/{{ ansible_user }}/simulation/event_driven_simulation"
+    mode: "0755"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    force: true
+
+- name: Copy the pod file
+  ansible.builtin.copy:
+    src: pod.yml
+    dest: /home/{{ ansible_user }}/simulation/event_driven_simulation
+    mode: "0755"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    force: true
+
+- name: Copy the python script to get preferred node
+  ansible.builtin.copy:
+    src: get_preferred_node.py
+    dest: /home/{{ ansible_user }}/simulation/event_driven_simulation
+    mode: "0755"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    force: true
+
+- name: Copy the csv file with the preferred nodes
+  ansible.builtin.copy:
+    src: preferred_nodes.csv
+    dest: /home/{{ ansible_user }}/simulation/event_driven_simulation
+    mode: "0755"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    force: true
+
+- name: Copy the python script to get required resources
+  ansible.builtin.copy:
+    src: required_resources.py
+    dest: /home/{{ ansible_user }}/simulation/event_driven_simulation
+    mode: "0755"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    force: true
+
+- name: Copy the csv file with the required resources
+  ansible.builtin.copy:
+    src: event_driven_observatory.csv
+    dest: /home/{{ ansible_user }}/simulation/event_driven_simulation
+    mode: "0755"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    force: true
+
+- name: Remove docker image
+  ansible.builtin.command: sudo docker image rm event-driven-load-injector:local
+  ignore_errors: true
+
+- name: Build the docker image
+  community.docker.docker_image:
+    build:
+      path: /home/{{ ansible_user }}/simulation/event_driven_simulation
+      nocache: true
+    name: event-driven-load-injector
+    source: build
+    tag: local
+
+- name: Check if the docker image tar file exists
+  ansible.builtin.stat:
+    path: /home/{{ ansible_user }}/simulation/event-driven-load-injector.tar
+  register: docker_image_tar
+
+- name: Delete the docker image tar file
+  ansible.builtin.file:
+    path: /home/{{ ansible_user }}/simulation/event-driven-load-injector.tar
+    state: absent
+  when: docker_image_tar.stat.exists
+
+- name: Save the docker image to a tar file
+  ansible.builtin.shell: |
+    docker save event-driven-load-injector:local > /home/{{ ansible_user }}/simulation/event-driven-load-injector.tar
+
+- name: Remove the docker image from the nodes
+  ansible.builtin.command: sudo k0s ctr images rm docker.io/library/event-driven-load-injector:local
+  ignore_errors: true
+
+- name: Import the docker image to the nodes
+  ansible.builtin.command: sudo k0s ctr images import /home/{{ ansible_user }}/simulation/event-driven-load-injector.tar
+
+- name: Install python3-serial on the nodes
+  ansible.builtin.package:
+    name: python3-serial
+    state: present

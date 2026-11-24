@@ -1,0 +1,27 @@
+---
+- name: Cluster preparation
+  hosts: turing_pi_cluster
+  gather_facts: true
+  become: true
+  roles:
+    - download
+    - role: prereq
+    - role: raspberrypi
+
+- name: Setup k0s server
+  hosts: server
+  gather_facts: true
+  become: true
+  roles:
+    - role: k0s_server
+  vars:
+    label: "{{ node_labels | default('role=server,model=rk1') }}"
+
+- name: Setup k0s agent
+  hosts: agent
+  gather_facts: true
+  become: true
+  roles:
+    - role: k0s_agent
+  vars:
+    label: "{{ node_labels | default('role=worker,model=cm4') }}"

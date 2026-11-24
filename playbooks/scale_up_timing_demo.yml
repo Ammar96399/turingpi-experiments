@@ -1,0 +1,87 @@
+---
+- name: Scale-up timing demo
+  hosts: localhost
+  gather_facts: false
+  vars:
+    node_control_script: "{{ playbook_dir }}/../roles/node_control/files/node_control.py"
+    timing_probe_script: "{{ playbook_dir }}/../roles/node_control/files/scale_up_timing_probe.py"
+    remote_simulation_dir: "/home/{{ master_user }}/simulation"
+    simulation_namespace: simulation
+    node2_ip: 131.254.100.24
+    node1_ip: 131.254.100.18
+    master_user: akazem
+    stress_load: 80
+    stress_duration: 1200s
+    stress_cpu_method: union
+    dummy_job_count: 1
+    timing_probe_run_id: 3
+
+  tasks:
+
+    - name: Remove existing jobs in simulation namespace
+      ansible.builtin.shell: |
+        ssh {{ master_user }}@{{ node1_ip }} 'sudo k0s kubectl delete jobs --all -n {{ simulation_namespace }} --ignore-not-found=true'
+      ignore_errors: true
+
+    - name: Wait for job deletion to finish
+      ansible.builtin.pause:
+        seconds: 60
+      
+    - name: Shut down node 2 (worker)
+      ansible.builtin.shell: |
+        ssh root@131.254.100.14 tpi power --node 2 off
+      register: shutdown_result
+      ignore_errors: true
+
+    - name: Wait for job deletion to finish
+      ansible.builtin.pause:
+        seconds: 60
+
+    - name: Start stress-ng load on node 1 (master)
+      ansible.builtin.shell: |
+        ssh {{ master_user }}@{{ node1_ip }} 'nohup stress-ng -c 0 -l {{ stress_load }} -t {{ stress_duration }} --cpu-method "{{ stress_cpu_method }}" > /tmp/stress-ng.log 2>&1 &'
+      async: 0
+      poll: 0
+      ignore_errors: true
+
+    - name: Ensure simulation directory exists on master
+      ansible.builtin.shell: |
+        ssh {{ master_user }}@{{ node1_ip }} 'mkdir -p {{ remote_simulation_dir }}'
+      ignore_errors: true
+
+    - name: Copy node_control script to master simulation directory
+      ansible.builtin.shell: |
+        scp {{ node_control_script }} {{ master_user }}@{{ node1_ip }}:{{ remote_simulation_dir }}/node_control.py
+      ignore_errors: true
+
+    - name: Copy timing probe script to master simulation directory
+      ansible.builtin.shell: |
+        scp {{ timing_probe_script }} {{ master_user }}@{{ node1_ip }}:{{ remote_simulation_dir }}/scale_up_timing_probe.py
+      ignore_errors: true
+
+    - name: Ensure simulation namespace exists
+      ansible.builtin.shell: |
+        ssh {{ master_user }}@{{ node1_ip }} 'sudo k0s kubectl create namespace {{ simulation_namespace }} || true'
+      ignore_errors: true
+
+    - name: Deploy dummy jobs in simulation namespace
+      ansible.builtin.shell: |
+        ssh {{ master_user }}@{{ node1_ip }} '
+        for i in $(seq 1 {{ dummy_job_count }}); do
+          sudo k0s kubectl create job -n {{ simulation_namespace }} dummy-job-$i --image=busybox --dry-run=client -o yaml -- /bin/sh -c "sleep 1000" | sudo k0s kubectl apply -f -
+        done'
+      ignore_errors: true
+
+    - name: Launch node_control script
+      ansible.builtin.shell: |
+        ssh {{ master_user }}@{{ node1_ip }} 'nohup python3 {{ remote_simulation_dir }}/node_control.py 20 5 30 70 > {{ remote_simulation_dir }}/node_control_log.log 2>&1 &'
+      async: 0
+      poll: 0
+      ignore_errors: true
+
+    - name: Launch scale_up_timing_probe script
+      ansible.builtin.shell: |
+        ssh {{ master_user }}@{{ node1_ip }} 'nohup python3 {{ remote_simulation_dir }}/scale_up_timing_probe.py --target-ip {{ node2_ip }} --namespace {{ simulation_namespace }} --run-id {{ timing_probe_run_id }} > {{ remote_simulation_dir }}/scale_up_timing_probe.log 2>&1 &'
+      async: 0
+      poll: 0
+      ignore_errors: true

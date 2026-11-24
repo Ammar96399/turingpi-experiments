@@ -1,0 +1,28 @@
+---
+- name: Restart Prometheus
+  ansible.builtin.command: >
+    {{ helm_binary_path }} upgrade {{ prometheus_release_name }}
+    {{ prometheus_chart_name }}
+    --version {{ prometheus_helm_version }}
+    --namespace {{ monitoring_namespace }}
+    --kubeconfig {{ k3s_kubeconfig }}
+    -f /tmp/prometheus-values.yaml
+  register: helm_restart_prometheus
+  changed_when: helm_restart_prometheus.rc == 0
+
+- name: Restart Grafana
+  ansible.builtin.command: >
+    {{ helm_binary_path }} upgrade {{ grafana_release_name }}
+    {{ grafana_chart_name }}
+    --version {{ grafana_helm_version }}
+    --namespace {{ monitoring_namespace }}
+    --kubeconfig {{ k3s_kubeconfig }}
+    -f /tmp/grafana-values.yaml
+  register: helm_restart_grafana
+  changed_when: helm_restart_grafana.rc == 0
+
+- name: Restart Prometheus Port-Forward Service
+  ansible.builtin.systemd:
+    name: prometheus-port-forward
+    state: restarted
+    daemon_reload: true

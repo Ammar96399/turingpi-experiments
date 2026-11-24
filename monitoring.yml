@@ -1,0 +1,6 @@
+- name: Setup monitoring
+  hosts: server
+  gather_facts: true
+  become: true
+  roles:
+    - role: monitoring

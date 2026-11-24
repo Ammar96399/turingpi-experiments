@@ -1,0 +1,254 @@
+configuration:
+  - name: A1L1
+    applcation: Raw Data Injestion
+    description: Check if data is being emitted and save data locally
+    input_file: vm_data_c0024a9b840acae6b0519807c92e7c71.csv
+    max_value: 0.1
+    time_shift_hours: 0
+    day_to_extract: 1
+    rpi_model: cm4-dvfs
+    metric: events_per_second
+    verbose_flag: -v
+    number_of_days: 9
+  - name: A1L2
+    applcation: Raw Data Injestion
+    description: Send data to the cloud
+    input_file: lete02_rls_all_processed.csv
+    max_value: 0.5
+    time_shift_hours: 0
+    day_to_extract: 1
+    rpi_model: cm4-dvfs
+    metric: events_per_second
+    verbose_flag: -v
+    number_of_days: 9
+  - name: A2L1
+    applcation: Data Formatting
+    description: Format data in line protocol format and save locally
+    input_file: vm_data_c0024a9b840acae6b0519807c92e7c71.csv
+    max_value: 0.2
+    time_shift_hours: 0
+    day_to_extract: 1
+    rpi_model: cm4-dvfs
+    metric: events_per_second
+    verbose_flag: -v
+    number_of_days: 9
+  - name: A3L1
+    applcation: Quality Check
+    description: Filter wrong data using a simple thresholding method and save locally
+    input_file: vm_data_c0024a9b840acae6b0519807c92e7c71.csv
+    max_value: 0.2
+    time_shift_hours: 0
+    day_to_extract: 1
+    rpi_model: cm4-dvfs
+    metric: events_per_second
+    verbose_flag: -v
+    number_of_days: 9
+  - name: A3L2
+    applcation: Quality Check
+    description: Compare the same data from multiple sensors on the same site and save locally
+    input_file: vm_data_c0024a9b840acae6b0519807c92e7c71.csv
+    max_value: 0.5
+    time_shift_hours: 0
+    day_to_extract: 1
+    rpi_model: cm4-dvfs
+    metric: events_per_second
+    verbose_flag: -v
+    number_of_days: 9
+  - name: A3L3
+    applcation: Quality Check
+    description: Compare data to outside sources and save locally
+    input_file: vm_data_c0024a9b840acae6b0519807c92e7c71.csv
+    max_value: 2.0
+    time_shift_hours: 0
+    day_to_extract: 1
+    rpi_model: cm4-dvfs
+    metric: events_per_second
+    verbose_flag: -v
+    number_of_days: 9
+  - name: A4L1
+    applcation: Sensor Health Monitoring
+    description: Save alert if too recurrent missing data or outliers are detected
+    input_file: vm_data_445c35fee28406af91754f48d9bfa542.csv
+    max_value: 0.2
+    time_shift_hours: 0
+    day_to_extract: 1
+    rpi_model: cm4-dvfs
+    metric: events_per_second
+    verbose_flag: -v
+    number_of_days: 9
+  - name: A4L2
+    applcation: Sensor Health Monitoring
+    description: Send alert via SMS
+    input_file: vm_data_445c35fee28406af91754f48d9bfa542.csv
+    max_value: 0.5
+    time_shift_hours: 0
+    day_to_extract: 1
+    rpi_model: cm4-dvfs
+    metric: events_per_second
+    verbose_flag: -v
+    number_of_days: 9
+  - name: A4L3
+    applcation: Sensor Health Monitoring
+    description: Send alert via a call
+    input_file: vm_data_445c35fee28406af91754f48d9bfa542.csv
+    max_value: 0.5
+    time_shift_hours: 0
+    day_to_extract: 1
+    rpi_model: cm4-dvfs
+    metric: events_per_second
+    verbose_flag: -v
+    number_of_days: 9
+  - name: A4L4
+    applcation: Sensor Health Monitoring
+    description: Send alert via email
+    input_file: vm_data_445c35fee28406af91754f48d9bfa542.csv
+    max_value: 0.5
+    time_shift_hours: 0
+    day_to_extract: 1
+    rpi_model: cm4-dvfs
+    metric: events_per_second
+    verbose_flag: -v
+    number_of_days: 9
+  - name: A4L5
+    applcation: Sensor Health Monitoring
+    description: Send alert via push notification
+    input_file: vm_data_445c35fee28406af91754f48d9bfa542.csv
+    max_value: 0.5
+    time_shift_hours: 0
+    day_to_extract: 1
+    rpi_model: cm4-dvfs
+    metric: events_per_second
+    verbose_flag: -v
+    number_of_days: 9
+  - name: A5L1
+    applcation: Flood Detection
+    description: Flood detection using single value thresholding
+    input_file: lete02_rls_all_processed.csv
+    max_value: 0.2
+    time_shift_hours: 0
+    day_to_extract: 1
+    rpi_model: cm4-dvfs
+    metric: events_per_second
+    verbose_flag: -v
+    number_of_days: 9
+  - name: A5L2
+    applcation: Flood Detection
+    description: Flood detection using history thresholding method
+    input_file: lete02_rls_all_processed.csv
+    max_value: 0.4
+    time_shift_hours: 0
+    day_to_extract: 1
+    rpi_model: cm4-dvfs
+    metric: events_per_second
+    verbose_flag: -v
+    number_of_days: 9
+  - name: A5L3
+    applcation: Flood Detection
+    description: Flood detection by crossing data from multiple sources from the same site
+    input_file: lete02_rls_all_processed.csv
+    max_value: 0.6
+    time_shift_hours: 0
+    day_to_extract: 1
+    rpi_model: cm4-dvfs
+    metric: events_per_second
+    verbose_flag: -v
+    number_of_days: 9
+  - name: A5L4
+    applcation: Flood Detection
+    description: Calculating discharge with data and images
+    input_file: lete02_rls_all_processed.csv
+    max_value: 1
+    time_shift_hours: 0
+    day_to_extract: 1
+    rpi_model: cm4-dvfs
+    metric: events_per_second
+    verbose_flag: -v
+    number_of_days: 9
+  - name: A5L5
+    applcation: Flood Detection
+    description: Prediction of using ML models and discharge calculation with data and images
+    input_file: lete02_rls_all_processed.csv
+    max_value: 3
+    time_shift_hours: 0
+    day_to_extract: 1
+    rpi_model: cm4-dvfs
+    metric: events_per_second
+    verbose_flag: -v
+    number_of_days: 9
+  - name: A6L1
+    applcation: Flood Response
+    description: Calculate the number of samples and the tiem at which to take them and take the samples
+    input_file: lete02_rls_all_processed.csv
+    max_value: 0.2
+    time_shift_hours: 0
+    day_to_extract: 1
+    rpi_model: cm4-dvfs
+    metric: events_per_second
+    verbose_flag: -v
+    number_of_days: 9
+  - name: A6L2
+    applcation: Flood Response
+    description: Modify sampling rate
+    input_file: lete02_rls_all_processed.csv
+    max_value: 0.2
+    time_shift_hours: 0
+    day_to_extract: 1
+    rpi_model: cm4-dvfs
+    metric: events_per_second
+    verbose_flag: -v
+    number_of_days: 9
+  - name: A6L3
+    applcation: Flood Response
+    description: Classify seismometric data to detect flood events
+    input_file: lete02_rls_all_processed.csv
+    max_value: 2.0
+    time_shift_hours: 0
+    day_to_extract: 1
+    rpi_model: cm4-dvfs
+    metric: events_per_second
+    verbose_flag: -v
+    number_of_days: 9
+  - name: A6L4
+    applcation: Flood Response
+    description: Train ML models to detect events in seismometric data
+    input_file: lete02_rls_all_processed.csv
+    max_value: 3
+    time_shift_hours: 0
+    day_to_extract: 1
+    rpi_model: cm4-dvfs
+    metric: events_per_second
+    verbose_flag: -v
+    number_of_days: 9
+  - name: A6L5
+    applcation: Flood Response
+    description: Train rain prediction models using local data
+    input_file: lete02_rls_all_processed.csv
+    max_value: 3
+    time_shift_hours: 0
+    day_to_extract: 1
+    rpi_model: cm4-dvfs
+    metric: events_per_second
+    verbose_flag: -v
+    number_of_days: 9
+  - name: A6L6
+    applcation: Flood Response
+    description: Train flood prediction models using local data
+    input_file: lete02_rls_all_processed.csv
+    max_value: 3
+    time_shift_hours: 0
+    day_to_extract: 1
+    rpi_model: cm4-dvfs
+    metric: events_per_second
+    verbose_flag: -v
+    number_of_days: 9
+  - name: A6L7
+    applcation: Flood Response
+    description: Train image recognition models using local data
+    input_file: lete02_rls_all_processed.csv
+    max_value: 4
+    time_shift_hours: 0
+    day_to_extract: 1
+    rpi_model: cm4-dvfs
+    metric: events_per_second
+    verbose_flag: -v
+    number_of_days: 9

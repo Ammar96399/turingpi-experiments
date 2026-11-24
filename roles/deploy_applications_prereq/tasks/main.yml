@@ -1,0 +1,143 @@
+---
+- name: Check if Docker is installed
+  ansible.builtin.stat:
+    path: /usr/bin/docker
+  register: docker_installed
+
+- name: Download Docker installation script
+  ansible.builtin.get_url:
+    url: https://test.docker.com
+    dest: /tmp/get-docker.sh
+    mode: "0755"
+  when: not docker_installed.stat.exists
+
+- name: Execute Docker installation script
+  ansible.builtin.command:
+    cmd: sh /tmp/get-docker.sh
+  args:
+    creates: /usr/bin/docker
+  when: not docker_installed.stat.exists
+  register: docker_install_result
+  changed_when: docker_install_result.rc == 0
+
+- name: Ensure Docker service is running
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Add user to docker group
+  ansible.builtin.user:
+    name: "{{ ansible_user }}"
+    groups: docker
+    append: true
+
+- name: Create the simulation directory
+  ansible.builtin.file:
+    path: /home/{{ ansible_user }}/simulation
+    state: directory
+    mode: "0755"
+    owner: "{{ ansible_user }}"
+
+- name: Deletes the {{ workload }} simulation directory
+  ansible.builtin.file:
+    path: /home/{{ ansible_user }}/simulation/{{ workload }}_simulation
+    state: absent
+
+- name: Create the {{ workload }} simulation directory
+  ansible.builtin.file:
+    path: /home/{{ ansible_user }}/simulation/{{ workload }}_simulation
+    state: directory
+    mode: "0755"
+    owner: "{{ ansible_user }}"
+
+- name: Copy the application configuration file
+  ansible.builtin.copy:
+    src: "/home/akazem/Documents/PhD/projects/energy_proportionality/cluster_configuration/turing_pi_emulation/roles/workloads_injector/files/nepal_scenario/configs/workloads_configuration.yml"
+    dest: "/home/{{ ansible_user }}/simulation/{{ workload }}_simulation"
+    mode: "0755"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    force: true
+
+- name: Copy the application script
+  ansible.builtin.copy:
+    src: application.py
+    dest: "/home/{{ ansible_user }}/simulation/{{ workload }}_simulation"
+    mode: "0755"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    force: true
+
+- name: Copy the requirements file
+  ansible.builtin.copy:
+    src: requirements.txt
+    dest: "/home/{{ ansible_user }}/simulation/{{ workload }}_simulation"
+    mode: "0755"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    force: true
+
+- name: Copy the Dockerfile
+  ansible.builtin.copy:
+    src: Dockerfile
+    dest: "/home/{{ ansible_user }}/simulation/{{ workload }}_simulation"
+    mode: "0755"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    force: true
+
+- name: Remove docker image
+  ansible.builtin.command: sudo docker image rm application-simulator:local
+  ignore_errors: true
+
+- name: Build the docker image
+  community.docker.docker_image:
+    build:
+      path: /home/{{ ansible_user }}/simulation/{{ workload }}_simulation
+      nocache: true
+    name: application-simulator
+    source: build
+    tag: local
+
+- name: Check if the docker image tar file exists
+  ansible.builtin.stat:
+    path: /home/{{ ansible_user }}/simulation/application-simulator.tar
+  register: docker_image_tar
+
+- name: Delete the docker image tar file
+  ansible.builtin.file:
+    path: /home/{{ ansible_user }}/simulation/application-simulator.tar
+    state: absent
+  when: docker_image_tar.stat.exists
+
+- name: Save the docker image to a tar file
+  ansible.builtin.shell: |
+    docker save application-simulator:local > /home/{{ ansible_user }}/simulation/application-simulator.tar
+
+- name: Remove the docker image from the nodes
+  ansible.builtin.command: sudo k0s ctr images rm docker.io/library/application-simulator:local
+  ignore_errors: true
+
+- name: Import the docker image to the nodes
+  ansible.builtin.command: sudo k0s ctr images import /home/{{ ansible_user }}/simulation/application-simulator.tar
+
+- name: Check if simulation namespace exists
+  ansible.builtin.command: sudo k0s kubectl get namespace simulation
+  register: simulation_namespace
+  changed_when: false
+  failed_when: false
+  delegate_to: "{{ (groups['server'] | default([inventory_hostname]))[0] }}"
+  run_once: true
+
+- name: Create simulation namespace when missing
+  ansible.builtin.command: sudo k0s kubectl create namespace simulation
+  when: simulation_namespace.rc != 0
+  delegate_to: "{{ (groups['server'] | default([inventory_hostname]))[0] }}"
+  run_once: true
+
+- name: Delete jobs in simulation namespace when it already exists
+  ansible.builtin.command: sudo k0s kubectl delete jobs --all -n simulation --ignore-not-found=true
+  when: simulation_namespace.rc == 0
+  delegate_to: "{{ (groups['server'] | default([inventory_hostname]))[0] }}"
+  run_once: true

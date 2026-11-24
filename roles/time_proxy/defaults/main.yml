@@ -1,0 +1,5 @@
+---
+time_proxy_host: "127.0.0.1"
+# Connect to a concrete local address, never a wildcard listener address.
+time_proxy_connect_host: "{{ '127.0.0.1' if time_proxy_host == '0.0.0.0' else ('::1' if time_proxy_host == '::' else time_proxy_host) }}"
+time_proxy_url: "http://{{ '[' ~ time_proxy_connect_host ~ ']' if ':' in time_proxy_connect_host else time_proxy_connect_host }}:5000"
